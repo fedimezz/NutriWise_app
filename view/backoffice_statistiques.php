@@ -34,6 +34,31 @@
         
         .progress-bar { background: #e0e0e0; border-radius: 10px; height: 25px; overflow: hidden; margin: 10px 0; }
         .progress-fill { height: 100%; color: white; font-size: 12px; line-height: 25px; padding-left: 10px; }
+
+        .chart-card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .chart-title { color: #2E7D32; margin-bottom: 14px; border-bottom: 2px solid #4CAF50; padding-bottom: 8px; }
+        .chart-subtitle { color: #666; font-size: 13px; margin-bottom: 16px; }
+        .bar-chart { display: grid; gap: 10px; }
+        .bar-row { display: grid; grid-template-columns: 50px 1fr 100px; align-items: center; gap: 12px; }
+        .bar-label { font-weight: 700; color: #1B4D1B; text-align: center; }
+        .bar-track { background: #edf3ed; border-radius: 999px; height: 24px; overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 999px; transition: width 0.4s ease; min-width: 2%; }
+        .bar-value { color: #2f2f2f; font-size: 12px; text-align: right; }
+        .chart-legend { display: flex; flex-wrap: wrap; gap: 10px 14px; margin-top: 14px; }
+        .chart-legend span { display: inline-flex; align-items: center; gap: 6px; color: #666; font-size: 12px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+        .pie-layout { display: flex; flex-wrap: wrap; align-items: center; gap: 24px; }
+        .pie-chart {
+            width: 230px;
+            height: 230px;
+            border-radius: 50%;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05), 0 6px 18px rgba(0,0,0,0.08);
+            flex: 0 0 auto;
+        }
+        .pie-legend-list { display: grid; gap: 8px; min-width: 220px; }
+        .pie-legend-item { display: flex; justify-content: space-between; gap: 12px; align-items: center; font-size: 13px; color: #444; }
+        .pie-legend-left { display: inline-flex; align-items: center; gap: 8px; }
+        .pie-legend-value { font-weight: 600; color: #1B4D1B; }
         
         .badge-A, .badge-B, .badge-C, .badge-D, .badge-E { padding: 3px 8px; border-radius: 20px; font-size: 11px; display: inline-block; }
         .badge-A { background: #2E7D32; color: white; }
@@ -68,6 +93,54 @@
             <div class="header">
                 <h1>📈 Statistiques NutriWise</h1>
                 <div class="admin-badge">Admin</div>
+            </div>
+
+            <?php
+                $nutriData = $stats['aliments']['par_nutri_score'] ?? [];
+                $nutriTotal = max(1, (int)($stats['aliments']['total_aliments'] ?? 0));
+                $nutriColors = ['A' => '#2E7D32', 'B' => '#66BB6A', 'C' => '#FBC02D', 'D' => '#FB8C00', 'E' => '#E53935'];
+                $segments = [];
+                $legendRows = [];
+                $start = 0;
+
+                foreach($nutriData as $item) {
+                    $label = strtoupper($item['nutri_score'] ?? '?');
+                    $count = (int)($item['nombre'] ?? 0);
+                    $percentage = round(($count / $nutriTotal) * 100, 1);
+                    $color = $nutriColors[$label] ?? '#90A4AE';
+                    $end = $start + $percentage;
+                    $segments[] = $color . ' ' . $start . '% ' . $end . '%';
+                    $legendRows[] = ['label' => $label, 'count' => $count, 'percentage' => $percentage, 'color' => $color];
+                    $start = $end;
+                }
+
+                $pieGradient = !empty($segments) ? implode(', ', $segments) : '#e0e0e0 0% 100%';
+            ?>
+
+            <div class="chart-card">
+                <h3 class="chart-title">📊 Diagramme Nutri-Score</h3>
+                <p class="chart-subtitle">Vue rapide et lisible de la qualité nutritionnelle des aliments.</p>
+                <div class="pie-layout">
+                    <div class="pie-chart" style="background: conic-gradient(<?= $pieGradient ?>);"></div>
+                    <div class="pie-legend-list">
+                        <?php foreach($legendRows as $row): ?>
+                            <div class="pie-legend-item">
+                                <div class="pie-legend-left">
+                                    <i class="legend-dot" style="background:<?= $row['color'] ?>;"></i>
+                                    <span>Nutri-Score <?= htmlspecialchars($row['label']) ?></span>
+                                </div>
+                                <div class="pie-legend-value"><?= $row['count'] ?> (<?= $row['percentage'] ?>%)</div>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <div class="chart-legend">
+                    <span><i class="legend-dot" style="background:#2E7D32;"></i>Excellent (A)</span>
+                    <span><i class="legend-dot" style="background:#66BB6A;"></i>Bon (B)</span>
+                    <span><i class="legend-dot" style="background:#FBC02D;"></i>Moyen (C)</span>
+                    <span><i class="legend-dot" style="background:#FB8C00;"></i>Faible (D)</span>
+                    <span><i class="legend-dot" style="background:#E53935;"></i>À limiter (E)</span>
+                </div>
             </div>
 
             <!-- Stats globales -->
