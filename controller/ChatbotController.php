@@ -3,7 +3,7 @@ class ChatbotController {
     
     // ===== CONFIGURATION API GEMINI =====
     // Pour obtenir une clé : https://aistudio.google.com/app/apikey
-    private $apiKey = 'AIzaSyDeRAcum4REaLWFCHxiZvtjRd1GcZWx7Ns';
+    private $apiKey = 'AIzaSyBdIUVcRt0I7QchsWodR17cArK48zkIQfI';
     private $apiUrl = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
     private $memoryLimit = 8;
 
@@ -36,7 +36,7 @@ class ChatbotController {
             exit;
         }
         
-        // Appeler l'API Gemini pour une réponse intelligente
+        // Appeler l'IA (Gemini) pour une réponse intelligente
         $response = $this->callGemini($message, $history);
         $this->updateConversationMemory($message, $response);
         
@@ -52,13 +52,11 @@ class ChatbotController {
             return $this->getFallbackResponse($message);
         }
         
-        // Prompt système : personnalité du NutriBot
-        $systemPrompt = "Tu es NutriBot, un assistant nutritionniste expert de la plateforme NutriWise. " .
-            "Tu connais tout sur la nutrition, les aliments, les vitamines, les régimes, les calories, " .
-            "les protéines, les allergies alimentaires, et les bonnes habitudes alimentaires. " .
-            "Tu peux répondre à TOUTES les questions liées à la nutrition et à la santé alimentaire. " .
-            "Si la question n'est pas liée à la nutrition, réponds poliment que tu es spécialisé en nutrition. " .
-            "Réponds en français, de manière claire, précise et concise (max 200 mots). " .
+        // Prompt système : assistant generaliste avance
+        $systemPrompt = "Tu es NutriBot, un assistant IA avancé et généraliste de la plateforme NutriWise. " .
+            "Tu peux répondre à pratiquement toutes les questions: santé, technologie, études, productivité, cuisine, etc. " .
+            "Si la question concerne la santé, donne des conseils prudents et invite à consulter un professionnel pour les urgences. " .
+            "Réponds en français, de manière claire, précise et concise (max 220 mots). " .
             "Utilise des emojis pour rendre tes réponses agréables. " .
             "Ne mets jamais de markdown (pas de ** ou ##), utilise du HTML simple (<b>, <br>) pour le formatage.";
         
@@ -113,15 +111,18 @@ class ChatbotController {
 
         if ($decoded === null) {
             if (!empty($lastCurlError)) {
-                return '⚠️ Erreur de connexion IA : ' . htmlspecialchars($lastCurlError) . '<br>Je passe en mode conseils nutrition de secours.';
+                return $this->getFallbackResponse($message);
             }
 
             if (!empty($lastError)) {
-                // On montre une cause concise utile pour debug sans exposer de données sensibles.
-                return '⚠️ Service IA indisponible (' . htmlspecialchars($lastError) . ').<br>Je passe en mode conseils nutrition de secours.';
+                $lowerError = mb_strtolower($lastError);
+                if (strpos($lowerError, 'quota exceeded') !== false || strpos($lowerError, 'rate limit') !== false || strpos($lowerError, 'billing') !== false) {
+                    return $this->getFallbackResponse($message);
+                }
+                return $this->getFallbackResponse($message);
             }
 
-            return '⚠️ Service IA temporairement indisponible.<br>Je passe en mode conseils nutrition de secours.';
+            return $this->getFallbackResponse($message);
         }
         
         // Récupérer la réponse (ignorer les parties "thinking")
@@ -343,7 +344,11 @@ class ChatbotController {
         }
 
         if (preg_match('/\b(bonjour|salut|hello|coucou)\b/u', $msg)) {
-            return '👋 Bonjour ! Je suis <b>NutriBot</b>. Posez-moi librement vos questions nutrition : immunité, stress, digestion, sport, perte de poids, etc.';
+            return '👋 Bonjour ! Je suis <b>NutriBot</b>, votre assistant IA. Je peux répondre à vos questions générales (tech, études, productivité, santé, cuisine, etc.).';
+        }
+
+        if (preg_match('/\b(quel est ton nom|tu t\'appelles comment|ton nom)\b/u', $msg)) {
+            return '🤖 Je m\'appelle <b>NutriBot</b>, votre assistant IA sur NutriWise.';
         }
 
         if (preg_match('/\b(merci|thanks)\b/u', $msg)) {
@@ -386,18 +391,50 @@ class ChatbotController {
             'etiquette' => [
                 'keywords' => ['etiquette', 'étiquette', 'nutritionnelle', 'ingredients'],
                 'answer' => '🔎 Lire une etiquette nutritionnelle :<br>• Verifier la portion de reference<br>• Regarder sucres, sel, graisses saturees<br>• Liste d\'ingredients la plus courte possible<br>• Plus un ingredient sucre apparait tot, plus il est present'
+            ],
+            'petit_dejeuner' => [
+                'keywords' => ['petit dejeuner', 'petit-déjeuner', 'matin', 'dejeuner'],
+                'answer' => '🌅 Petit-déjeuner équilibré :<br>• 1 source de protéines (oeufs, yaourt grec)<br>• 1 glucide complet (avoine, pain complet)<br>• 1 fruit frais<br>• 1 boisson non sucrée'
+            ],
+            'cholesterol' => [
+                'keywords' => ['cholesterol', 'cholestérol', 'ldl', 'hdl'],
+                'answer' => '🫀 Pour améliorer le cholestérol :<br>• Plus de fibres solubles (avoine, légumineuses)<br>• Bonnes graisses (huile d\'olive, noix, poissons gras)<br>• Réduire charcuteries/fritures<br>• Activité physique régulière'
+            ],
+            'hydratation' => [
+                'keywords' => ['eau', 'hydrat', 'boire'],
+                'answer' => '💧 Hydratation pratique :<br>• Visez 1.5 à 2L d\'eau/jour<br>• Augmentez si sport/chaleur<br>• Urines claires = bon indicateur<br>• Limitez sodas et jus sucrés'
             ]
         ];
 
+        $matchedAnswers = [];
         foreach ($knowledge as $entry) {
             foreach ($entry['keywords'] as $keyword) {
                 if (strpos($msg, $keyword) !== false) {
-                    return $entry['answer'];
+                    $matchedAnswers[] = $entry['answer'];
+                    break;
                 }
             }
         }
 
-        return '🤖 Je peux vous aider sur l\'alimentation saine, le poids, le sport, l\'immunite, la digestion, le stress, le sommeil et la lecture d\'etiquettes. Reformulez votre question avec votre objectif (ex: "Je veux plus d\'energie le matin, que manger ?").';
+        if (!empty($matchedAnswers)) {
+            return implode('<br><br>', array_slice(array_unique($matchedAnswers), 0, 2));
+        }
+
+        // Réponse générique dynamique pour éviter de répéter toujours le même texte.
+        $intent = 'mieux manger';
+        if (preg_match('/(maigr|poids|mincir|gras)/u', $msg)) $intent = 'perdre du poids';
+        elseif (preg_match('/(muscl|sport|perform|entrain)/u', $msg)) $intent = 'améliorer vos performances sportives';
+        elseif (preg_match('/(fatigue|energie|énergie)/u', $msg)) $intent = 'retrouver de l\'énergie';
+        elseif (preg_match('/(digestion|ventre|transit)/u', $msg)) $intent = 'améliorer votre digestion';
+
+        return '🤖 Bonne question. Même sans IA en ligne, je peux vous aider pour <b>' . $intent . '</b>.<br>' .
+            'Voici une base simple :<br>' .
+            '• Remplissez 1/2 assiette de légumes<br>' .
+            '• Ajoutez une protéine à chaque repas<br>' .
+            '• Choisissez des féculents complets en portion modérée<br>' .
+            '• Limitez produits ultra-transformés et boissons sucrées<br>' .
+            '• Buvez de l\'eau régulièrement 💧<br><br>' .
+            'Pour des réponses IA avancées sur n\'importe quel sujet, utilisez une clé Gemini valide avec quota disponible.';
     }
 }
 ?>
