@@ -133,7 +133,7 @@ class Statistique {
         // Nombre total de recettes
         $stmt = $this->conn->query("SELECT 
             COUNT(*) as total,
-            SUM(CASE WHEN statut = 'Publié' THEN 1 ELSE 0 END) as publiees,
+            SUM(CASE WHEN statut = 'Programmée' THEN 1 ELSE 0 END) as publiees,
             SUM(CASE WHEN statut = 'Brouillon' THEN 1 ELSE 0 END) as brouillons
         FROM recettes");
         $stats['total_recettes'] = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -178,7 +178,7 @@ class Statistique {
             r.id, r.title, COALESCE(AVG(urr.rating), 0) as note_moyenne
         FROM recettes r
         LEFT JOIN user_recette_ratings urr ON r.id = urr.recette_id
-        WHERE r.statut = 'Publié'
+        WHERE r.statut = 'Programmée'
         GROUP BY r.id
         ORDER BY note_moyenne DESC
         LIMIT 5");
@@ -189,7 +189,7 @@ class Statistique {
             r.id, r.title, COUNT(urv.id) as vues
         FROM recettes r
         LEFT JOIN user_recette_views urv ON r.id = urv.recette_id
-        WHERE r.statut = 'Publié'
+        WHERE r.statut = 'Programmée'
         GROUP BY r.id
         ORDER BY vues DESC
         LIMIT 5");

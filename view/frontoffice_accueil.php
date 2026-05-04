@@ -105,5 +105,8 @@
             <p>© 2025 NutriWise - Nutrition intelligente et durable</p>
         </footer>
     </div>
+
+    <!-- Chatbot IA NutriBot -->
+    <?php include __DIR__ . '/chatbot_widget.php'; ?>
 </body>
 </html>

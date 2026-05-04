@@ -11,6 +11,7 @@ class Recette {
     public $difficulte;
     public $saison;
     public $statut;
+    public $date_publication;
     public $score_durabilite;
     public $user_id; // Pour permettre aux users de créer des recettes
 
@@ -61,7 +62,9 @@ class Recette {
                   FROM " . $this->table_name . " r
                   LEFT JOIN recette_aliments ra ON r.id = ra.recette_id
                   LEFT JOIN aliments a ON ra.aliment_id = a.id
-                  WHERE r.statut = 'Publié'
+                  WHERE r.statut = 'Programmée'
+                  AND r.date_publication IS NOT NULL
+                  AND r.date_publication <= NOW()
                   GROUP BY r.id
                   ORDER BY r.id DESC";
         $stmt = $this->conn->prepare($query);
@@ -143,7 +146,7 @@ class Recette {
             $query = "INSERT INTO " . $this->table_name . "
                       SET title=:title, description=:description, instructions=:instructions,
                           duree=:duree, difficulte=:difficulte, saison=:saison,
-                          statut=:statut, score_durabilite=:score_durabilite";
+                          statut=:statut, date_publication=:date_publication, score_durabilite=:score_durabilite";
             if(isset($this->user_id)) {
                 $query .= ", user_id=:user_id";
             }
@@ -156,6 +159,7 @@ class Recette {
             $stmt->bindParam(":difficulte", $this->difficulte);
             $stmt->bindParam(":saison", $this->saison);
             $stmt->bindParam(":statut", $this->statut);
+            $stmt->bindParam(":date_publication", $this->date_publication);
             $stmt->bindParam(":score_durabilite", $this->score_durabilite);
             if(isset($this->user_id)) {
                 $stmt->bindParam(":user_id", $this->user_id);
@@ -200,7 +204,7 @@ class Recette {
             $query = "UPDATE " . $this->table_name . "
                       SET title=:title, description=:description, instructions=:instructions,
                           duree=:duree, difficulte=:difficulte, saison=:saison,
-                          statut=:statut, score_durabilite=:score_durabilite
+                          statut=:statut, date_publication=:date_publication, score_durabilite=:score_durabilite
                       WHERE id = :id";
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(":id", $this->id);
@@ -211,6 +215,7 @@ class Recette {
             $stmt->bindParam(":difficulte", $this->difficulte);
             $stmt->bindParam(":saison", $this->saison);
             $stmt->bindParam(":statut", $this->statut);
+            $stmt->bindParam(":date_publication", $this->date_publication);
             $stmt->bindParam(":score_durabilite", $this->score_durabilite);
             
             if(!$stmt->execute()) {

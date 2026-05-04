@@ -95,7 +95,7 @@
                     <div class="stats-row">
                         <div class="stat-item">
                             <div class="stat-value"><?= $stats['recettes']['total_recettes']['publiees'] ?></div>
-                            <div class="stat-desc">Publiées</div>
+                            <div class="stat-desc">Programmées</div>
                         </div>
                         <div class="stat-item">
                             <div class="stat-value"><?= $stats['recettes']['total_recettes']['brouillons'] ?></div>

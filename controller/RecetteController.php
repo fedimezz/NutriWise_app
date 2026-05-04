@@ -58,6 +58,13 @@ class RecetteController {
         $this->recette->statut = $_POST['statut'];
         $this->recette->score_durabilite = $_POST['score_durabilite'];
         
+        // Gestion de la date de publication
+        if($_POST['statut'] == 'Programmée' && !empty($_POST['date_publication'])) {
+            $this->recette->date_publication = str_replace('T', ' ', $_POST['date_publication']) . ':00';
+        } else {
+            $this->recette->date_publication = null;
+        }
+        
         if(isset($_SESSION['user_id'])) {
             $this->recette->user_id = $_SESSION['user_id'];
         }
@@ -100,6 +107,13 @@ class RecetteController {
         $this->recette->saison = $_POST['saison'];
         $this->recette->statut = $_POST['statut'];
         $this->recette->score_durabilite = $_POST['score_durabilite'];
+        
+        // Gestion de la date de publication
+        if($_POST['statut'] == 'Programmée' && !empty($_POST['date_publication'])) {
+            $this->recette->date_publication = str_replace('T', ' ', $_POST['date_publication']) . ':00';
+        } else {
+            $this->recette->date_publication = null;
+        }
 
         $result = $this->recette->update();
         if($result['success']) {

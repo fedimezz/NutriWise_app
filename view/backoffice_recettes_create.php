@@ -101,10 +101,39 @@ if(!isset($aliments)) {
                     </select>
                     
                     <label>Statut</label>
-                    <select name="statut">
+                    <select name="statut" id="statut-select" onchange="toggleDatePublication()">
                         <option value="Brouillon" <?= ($_POST['statut'] ?? '') == 'Brouillon' ? 'selected' : '' ?>>Brouillon</option>
-                        <option value="Publie" <?= ($_POST['statut'] ?? '') == 'Publie' ? 'selected' : '' ?>>Publié</option>
+                        <option value="Programmée" <?= ($_POST['statut'] ?? '') == 'Programmée' ? 'selected' : '' ?>>Programmée</option>
                     </select>
+                    
+                    <!-- Calendrier de publication -->
+                    <div id="date-publication-wrapper" style="display:none; margin-top:10px; padding:15px; background:#f0f8e8; border-radius:8px; border:1px solid #4CAF50;">
+                        <label>📅 <b>Date et heure de publication</b> <small>(Heure Tunisie UTC+1)</small></label>
+                        <input type="datetime-local" name="date_publication" id="date_publication">
+                        <small style="color:#888;">🕐 Le calendrier est réglé sur le fuseau horaire de la Tunisie (Africa/Tunis)</small>
+                    </div>
+                    
+                    <script>
+                    function toggleDatePublication() {
+                        var statut = document.getElementById('statut-select').value;
+                        var wrapper = document.getElementById('date-publication-wrapper');
+                        if(statut === 'Programmée') {
+                            wrapper.style.display = 'block';
+                            // Pré-remplir avec la date/heure actuelle en Tunisie
+                            var now = new Date();
+                            var tunisiaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Tunis' }));
+                            var y = tunisiaTime.getFullYear();
+                            var m = String(tunisiaTime.getMonth()+1).padStart(2,'0');
+                            var d = String(tunisiaTime.getDate()).padStart(2,'0');
+                            var h = String(tunisiaTime.getHours()).padStart(2,'0');
+                            var min = String(tunisiaTime.getMinutes()).padStart(2,'0');
+                            document.getElementById('date_publication').value = y+'-'+m+'-'+d+'T'+h+':'+min;
+                        } else {
+                            wrapper.style.display = 'none';
+                        }
+                    }
+                    document.addEventListener('DOMContentLoaded', function() { toggleDatePublication(); });
+                    </script>
                     
                     <label>Score durabilité (⭐/5)</label>
                     <select name="score_durabilite">

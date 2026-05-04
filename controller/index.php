@@ -68,6 +68,10 @@ if($controller_name == 'aliment') {
     } else {
         echo "Action non trouvée : " . $action;
     }
+} elseif($controller_name == 'chatbot') {
+    require_once __DIR__ . '/ChatbotController.php';
+    $controller = new ChatbotController();
+    $controller->respond();
 } else {
     if($area == 'back') {
         require_once __DIR__ . '/../view/backoffice_dashboard.php';

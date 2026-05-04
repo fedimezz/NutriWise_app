@@ -122,7 +122,12 @@
                             <td><?= $r['difficulte'] ?></td>
                             <td><?= $r['saison'] ?></td>
                             <td><?= $r['duree'] ?> min</td>
-                            <td><span class="<?= $r['statut'] == 'Publié' ? 'badge-published' : 'badge-draft' ?>"><?= $r['statut'] ?></span></td>
+                            <td>
+                                <span class="<?= $r['statut'] == 'Programmée' ? 'badge-published' : 'badge-draft' ?>"><?= $r['statut'] ?></span>
+                                <?php if($r['statut'] == 'Programmée' && !empty($r['date_publication'])): ?>
+                                    <br><small style="color:#666;">📅 <?= date('d/m/Y H:i', strtotime($r['date_publication'])) ?></small>
+                                <?php endif; ?>
+                            </td>
                             <td style="text-align: center;">⭐ <?= $r['score_durabilite'] ?></td>
                             <td class="action-cell" style="text-align: center;">
                                 <a href="../controller/index.php?controller=recette&action=edit&id=<?= $r['id'] ?>&area=back" class="btn-edit">✏️ Modifier</a>
