@@ -150,6 +150,8 @@ require_once 'controllers/AuthController.php';
 require_once 'controllers/UserController.php';
 require_once 'controllers/AdminController.php';
 require_once 'controllers/AlimentController.php';
+require_once 'controllers/ActivityLogController.php';
+
 
 // On récupère la page demandée, sinon 'home'
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
@@ -284,6 +286,12 @@ switch ($page) {
     $admin = new AdminController();
     $admin->deleteUsersBulk();
     break;
+    case 'activity_feed':
+    require_role([ROLE_ADMIN, ROLE_OWNER]); // secure access
+    $activity = new ActivityLogController();
+    $activity->feed();
+    break;
+
 
     case 'admin_recettes':
         $admin = new AdminController();
