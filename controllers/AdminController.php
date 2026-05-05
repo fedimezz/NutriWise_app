@@ -16,6 +16,7 @@
 
 require_once 'models/UserModel.php';
 require_once 'models/AlimentModel.php';
+require_once 'models/ActivityLogModel.php';
 
 class AdminController
 {
@@ -44,14 +45,23 @@ class AdminController
      *
      * Shows overview of total users, aliments, recipes, and active plans
      */
-    public function dashboard()
-    {
+    public function dashboard() {
         $page = 'admin_dashboard';
-        $totalUsers = $this->userModel->countUsers();
+
+        // Statistiques
+        $totalUsers    = $this->userModel->countUsers();
         $totalAliments = $this->alimentModel->countAliments();
-        $totalRecipes = $this->userModel->countRecipes();
-        $activePlans = $this->userModel->countActivePlans();
+        $totalRecipes  = $this->userModel->countRecipes();
+        $activePlans   = $this->userModel->countActivePlans();
+
+        // Derniers utilisateurs
         $usersList = $this->userModel->getAllUsers();
+
+        // Dernières activités (5 dernières)
+        $activityModel    = new ActivityLogModel();
+        $recentActivities = $activityModel->getLogs(null, null, 5, 0);
+
+        // Vue
         require_once 'views/back/dashboard.php';
     }
 

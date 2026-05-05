@@ -3,6 +3,8 @@
 // Contrôleur principal pour l'authentification des utilisateurs
 
 require_once 'models/UserModel.php';
+require_once 'models/ActivityLogModel.php';
+
 
 class AuthController {
     private $userModel;
@@ -620,6 +622,8 @@ public function handleLogin() {
         $_SESSION['user_email'] = $user['email'];
         $_SESSION['user_image'] = $user['profile_image'] ?? 'default-avatar.png';
         unset($_SESSION['_login_rl']);
+        $logModel = new ActivityLogModel($pdo);
+        $logModel->insertLog($_SESSION['user_id'], 'login', 'User logged in');
 
         // ✅ Vérifier si l'utilisateur doit changer son mot de passe
         if ($this->userModel->mustChangePassword($_SESSION['user_id'])) {
@@ -721,6 +725,8 @@ public function handleLogin() {
             $_SESSION['user_email'] = (string)($u['email'] ?? '');
             $_SESSION['user_image'] = (string)($u['image'] ?? 'default-avatar.png');
             unset($_SESSION['login_verify']);
+            $logModel = new ActivityLogModel($pdo);
+            $logModel->insertLog($_SESSION['user_id'], 'login', 'User logged in via email code');
 
             $this->redirectByRole();
             exit();
@@ -968,22 +974,34 @@ public function handleForgotPassword()
     /**
      * Déconnexion de l'utilisateur
      */
-    public function logout() {
-        // Destruction complète de la session
-        $_SESSION = [];
-        
-        if (ini_get("session.use_cookies")) {
-            $params = session_get_cookie_params();
-            setcookie(session_name(), '', time() - 42000,
-                $params["path"], $params["domain"],
-                $params["secure"], $params["httponly"]
-            );
-        }
-        
-        session_destroy();
-        redirect("index.php?page=home");
+ public function logout() {
+
+    // ✅ Get user BEFORE destroying session
+    $user_id = current_user_id();
+
+    // ✅ Log logout FIRST
+    if ($user_id) {
+        require_once 'models/ActivityLogModel.php';
+        $logModel = new ActivityLogModel();
+        $logModel->insertLog($user_id, 'logout', 'User logged out');
     }
 
+    // ✅ Then destroy session
+    $_SESSION = [];
+
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params["path"], $params["domain"],
+            $params["secure"], $params["httponly"]
+        );
+    }
+
+    session_destroy();
+
+    // ✅ Redirect
+    redirect("index.php?page=home");
+}
     /**
      * Redirige l'utilisateur selon son rôle
      */
