@@ -40,6 +40,18 @@ session_set_cookie_params([
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+// --- Database Connection ---
+$host = env_value('DB_HOST', 'localhost');
+$db   = env_value('DB_NAME', 'nutriwise_db');
+$user = env_value('DB_USER', 'root');
+$pass = env_value('DB_PASS', '');
+
+try {
+    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
+    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+} catch (PDOException $e) {
+    die("Database error: " . $e->getMessage());
+}
 
 // Roles
 if (!defined('ROLE_OWNER')) define('ROLE_OWNER', 'owner');
@@ -151,6 +163,7 @@ require_once 'controllers/UserController.php';
 require_once 'controllers/AdminController.php';
 require_once 'controllers/AlimentController.php';
 require_once 'controllers/ActivityLogController.php';
+require_once 'controllers/NotificationController.php';
 
 
 // On récupère la page demandée, sinon 'home'
@@ -264,6 +277,15 @@ switch ($page) {
         // Legacy page: redirect to the admin flow
         redirect("index.php?page=admin_add_aliment");
         break;
+    case 'get_notifications':
+    $controller = new NotificationController($pdo);
+    $controller->getLatest();
+    break;
+
+case 'mark_notification':
+    $controller = new NotificationController($pdo);
+    $controller->markAsRead();
+    break;
 
     case 'aliment_details':
         $alimentController = new AlimentController();
