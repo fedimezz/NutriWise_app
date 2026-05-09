@@ -379,8 +379,6 @@
     </style>
 </head>
 <body>
-    <!-- Include Chatbot -->
-<?php include 'views/back/chatbot.php'; ?>
     <div class="container">
         <?php include_once 'partials/navbar.php'; ?>
 

@@ -164,6 +164,7 @@ require_once 'controllers/AdminController.php';
 require_once 'controllers/AlimentController.php';
 require_once 'controllers/ActivityLogController.php';
 require_once 'controllers/NotificationController.php';
+require_once 'controllers/RecetteController.php';
 
 
 // On récupère la page demandée, sinon 'home'
@@ -286,6 +287,15 @@ case 'mark_notification':
     $controller = new NotificationController($pdo);
     $controller->markAsRead();
     break;
+    case 'recettes':
+    $user = new UserController();
+    $user->recettes();
+    break;
+
+case 'recette_details':
+    $user = new UserController();
+    $user->recetteDetails();
+    break;
 
     case 'aliment_details':
         $alimentController = new AlimentController();
@@ -298,72 +308,103 @@ case 'mark_notification':
         $page = 'nutritionist_dashboard';
         require_once 'views/front/suivi.php';
         break;
+        // Ajouter dans votre routeur/index.php
+case 'chatbot':
+    $controller = new ChatbotController($pdo);
+    $controller->show();
+    break;
 
-    // --- BACKEND (ADMIN) ---
-    case 'admin_dashboard':
-        $admin = new AdminController();
-        $admin->dashboard();
-        break;
-    case 'admin_delete_users_bulk':
-    $admin = new AdminController();
+case 'chatbot_api':
+    $controller = new ChatbotController($pdo);
+    $controller->api();
+    break;
+
+// --- BACKEND (ADMIN) ---
+case 'admin_dashboard':
+    $admin = new AdminController($pdo);
+    $admin->dashboard();
+    break;
+
+case 'admin_delete_users_bulk':
+    $admin = new AdminController($pdo);
     $admin->deleteUsersBulk();
     break;
-    case 'activity_feed':
-    require_role([ROLE_ADMIN, ROLE_OWNER]); // secure access
+
+case 'activity_feed':
+    require_role([ROLE_ADMIN, ROLE_OWNER]);
     $activity = new ActivityLogController();
     $activity->feed();
     break;
 
+case 'admin_recettes':
+    $admin = new AdminController($pdo);
+    $admin->adminRecettes();
+    break;
 
-    case 'admin_recettes':
-        $admin = new AdminController();
-        $admin->adminRecettes();
-        break;
+case 'admin_plans':
+    $admin = new AdminController($pdo);
+    $admin->adminPlans();
+    break;
 
-    case 'admin_plans':
-        $admin = new AdminController();
-        $admin->adminPlans();
-        break;
+case 'admin_users':
+    $admin = new AdminController($pdo);
+    $admin->listUsers();
+    break;
 
-    case 'admin_users':
-        $admin = new AdminController();
-        $admin->listUsers();
-        break;
+case 'admin_add_user':
+    $admin = new AdminController($pdo);
+    $admin->addUser();
+    break;
 
-    case 'admin_add_user':
-        $admin = new AdminController();
-        $admin->addUser();
-        break;
+case 'admin_edit_user':
+    $admin = new AdminController($pdo);
+    $admin->editUser();
+    break;
 
-    case 'admin_edit_user':
-        $admin = new AdminController();
-        $admin->editUser();
-        break;
+case 'admin_delete_user':
+    $admin = new AdminController($pdo);
+    $admin->deleteUser();
+    break;
 
-    case 'admin_delete_user':
-        $admin = new AdminController();
-        $admin->deleteUser();
-        break;
+case 'admin_aliments':
+    $alimentController = new AlimentController();
+    $alimentController->listAliments();
+    break;
 
-    case 'admin_aliments':
-        $alimentController = new AlimentController();
-        $alimentController->listAliments();
-        break;
+case 'admin_add_aliment':
+    $alimentController = new AlimentController();
+    $alimentController->addAliment();
+    break;
 
-    case 'admin_add_aliment':
-        $alimentController = new AlimentController();
-        $alimentController->addAliment();
-        break;
+case 'admin_delete_aliment':
+    $alimentController = new AlimentController();
+    $alimentController->deleteAliment();
+    break;
 
-    case 'admin_delete_aliment':
-        $alimentController = new AlimentController();
-        $alimentController->deleteAliment();
-        break;
+case 'admin_edit_aliment':
+    $alimentController = new AlimentController();
+    $alimentController->editAliment();
+    break;
+// --- GESTION DES RECETTES (ADMIN) ---
+case 'admin_recettes_list':
+    $recetteController = new RecetteController($pdo);
+    $recetteController->adminList();
+    break;
 
-    case 'admin_edit_aliment':
-        $alimentController = new AlimentController();
-        $alimentController->editAliment();
-        break;
+case 'admin_add_recette':
+    $recetteController = new RecetteController($pdo);
+    $recetteController->adminAdd();
+    break;
+
+case 'admin_edit_recette':
+    $recetteController = new RecetteController($pdo);
+    $recetteController->adminEdit();
+    break;
+
+case 'admin_delete_recette':
+    $recetteController = new RecetteController($pdo);
+    $recetteController->adminDelete();
+    break;
 
     default:
         header("HTTP/1.0 404 Not Found");

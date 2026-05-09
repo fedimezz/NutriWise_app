@@ -29,7 +29,7 @@ $userImage = $_SESSION['user_image'] ?? 'default-avatar.png';
         
         <?php if($isLoggedIn): ?>
             <a href="index.php?page=aliments" class="nav-link <?= $currentPage == 'aliments' ? 'active' : '' ?>">Aliments</a>
-            <a href="index.php?page=recettes" class="nav-link <?= $currentPage == 'recettes' ? 'active' : '' ?>">Recettes</a>
+            <a href="index.php?page=recettes" class="nav-link <?= in_array($currentPage, ['recettes', 'recette_details'], true) ? 'active' : '' ?>">Recettes</a>
             <a href="index.php?page=suivi" class="nav-link <?= $currentPage == 'suivi' ? 'active' : '' ?>">Suivi</a>
         <?php endif; ?>
 
@@ -57,9 +57,9 @@ $userImage = $_SESSION['user_image'] ?? 'default-avatar.png';
 
             <div class="user-menu">
                 <a href="index.php?page=profile" class="profile-link">
-                    <img src="views/assets/uploads/<?= $userImage ?>" 
+                    <img src="views/uploads/<?= $userImage ?>" 
                          class="nav-avatar"
-                         onerror="this.src='views/assets/uploads/default-avatar.png'">
+                         onerror="this.src='views/uploads/default-avatar.png'">
                     <span><?= htmlspecialchars($_SESSION['user_name'] ?? 'Utilisateur') ?></span>
                 </a>
 

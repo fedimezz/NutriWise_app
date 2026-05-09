@@ -340,10 +340,8 @@
     </style>
 </head>
 <body>
-    <!-- Include Chatbot -->
-<?php include 'views/back/chatbot.php'; ?>
     <div class="container">
-        <?php include_once 'partials/navbar.php'; ?>
+        <?php include_once 'views/front/partials/navbar.php'; ?>
 
         <div class="detail-container">
             <a href="javascript:history.back()" class="back-link">

@@ -150,7 +150,7 @@
                 <div class="profile-avatar">
                     <?php
                     $hasProfileImage = !empty($userData['profile_image']);
-                    $profileImage = $hasProfileImage ? 'views/assets/uploads/' . $userData['profile_image'] : null;
+                    $profileImage = $hasProfileImage ? 'views/uploads/' . $userData['profile_image'] : null;
                     ?>
                     <div class="avatar-frame">
                         <?php if($profileImage): ?>

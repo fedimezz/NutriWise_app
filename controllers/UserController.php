@@ -1,12 +1,15 @@
 <?php
 // controllers/UserController.php
 require_once 'models/UserModel.php';
+require_once 'models/RecetteModel.php';
 
 class UserController {
     private $userModel;
+    private $recetteModel;
 
     public function __construct() {
         $this->userModel = new UserModel();
+        $this->recetteModel = new RecetteModel();
     }
 
     public function profile() {
@@ -116,82 +119,65 @@ class UserController {
         require_once 'views/front/change_password.php';
     }
 
+    /**
+     * Affiche la liste des recettes (front office)
+     */
     public function recettes() {
         require_login();
-        $page = 'recettes';
-
-        $userId = current_user_id();
-        $role = current_user_role();
-
-        // Handle create/update/delete via POST/GET
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            csrf_check();
-            $action = $_POST['action'] ?? '';
-            $title = trim($_POST['title'] ?? '');
-            $description = trim($_POST['description'] ?? '');
-            $calories = ($_POST['calories'] ?? '') !== '' ? (int)$_POST['calories'] : null;
-            $protein_g = ($_POST['protein_g'] ?? '') !== '' ? (float)$_POST['protein_g'] : null;
-            $carbs_g = ($_POST['carbs_g'] ?? '') !== '' ? (float)$_POST['carbs_g'] : null;
-            $fat_g = ($_POST['fat_g'] ?? '') !== '' ? (float)$_POST['fat_g'] : null;
-
-            if ($title === '') {
-                $_SESSION['error'] = "Titre requis.";
-                redirect("index.php?page=recettes");
-            }
-
-            $data = [
-                'title' => $title,
-                'description' => $description !== '' ? $description : null,
-                'calories' => $calories,
-                'protein_g' => $protein_g,
-                'carbs_g' => $carbs_g,
-                'fat_g' => $fat_g,
-            ];
-
-            if ($action === 'create_recipe') {
-                if ($this->userModel->createRecipe($userId, $data)) {
-                    $_SESSION['success'] = "Recette créée avec succès.";
-                } else {
-                    $_SESSION['error'] = "Erreur lors de la création.";
-                }
-                redirect("index.php?page=recettes");
-            }
-
-            if ($action === 'update_recipe') {
-                $recipeId = (int)($_POST['recipe_id'] ?? 0);
-                if ($recipeId <= 0) redirect("index.php?page=recettes");
-                if ($this->userModel->updateRecipe($recipeId, $userId, $role, $data)) {
-                    $_SESSION['success'] = "Recette modifiée avec succès.";
-                } else {
-                    $_SESSION['error'] = "Modification non autorisée ou erreur.";
-                }
-                redirect("index.php?page=recettes");
-            }
-
-            redirect("index.php?page=recettes");
-        }
-
-        if (($_GET['action'] ?? '') === 'delete_recipe') {
-            $recipeId = (int)($_GET['id'] ?? 0);
-            if ($recipeId > 0) {
-                if ($this->userModel->deleteRecipe($recipeId, $userId, $role)) {
-                    $_SESSION['success'] = "Recette supprimée.";
-                } else {
-                    $_SESSION['error'] = "Suppression non autorisée ou erreur.";
-                }
-            }
-            redirect("index.php?page=recettes");
-        }
-
-        $search = trim($_GET['q'] ?? '');
-        $recipes = $this->userModel->getRecipes($search !== '' ? $search : null);
-        $editRecipe = null;
-        if (($_GET['action'] ?? '') === 'edit_recipe') {
-            $rid = (int)($_GET['id'] ?? 0);
-            if ($rid > 0) $editRecipe = $this->userModel->getRecipeById($rid);
-        }
-
+        
+        $page = isset($_GET['p']) ? max(1, (int)$_GET['p']) : 1;
+        $search = $_GET['search'] ?? '';
+        $categorie = $_GET['categorie'] ?? 'all';
+        $perPage = 6;
+        
+        $recettes = $this->recetteModel->getAllRecettes($search, $categorie, $page, $perPage);
+        $totalRecettes = $this->recetteModel->countRecettes($search, $categorie);
+        $totalPages = ceil($totalRecettes / $perPage);
+        
         require_once 'views/front/recettes.php';
+    }
+
+    /**
+     * Afficher le détail d'une recette
+     */
+    public function recetteDetails() {
+        require_login();
+        
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) {
+            $_SESSION['error'] = "Recette introuvable";
+            redirect("index.php?page=recettes");
+        }
+        
+        $recette = $this->recetteModel->getRecetteById($id);
+        if (!$recette) {
+            $_SESSION['error'] = "Recette non trouvée";
+            redirect("index.php?page=recettes");
+        }
+        
+        // Incrémenter les vues
+        $this->recetteModel->incrementViews($id);
+        
+        // Récupérer les ingrédients et étapes
+        $ingredients = $this->recetteModel->getIngredientsByRecetteId($id);
+        $etapes = $this->recetteModel->getEtapesByRecetteId($id);
+        
+        // Vérifier si la recette est dans les favoris
+        $isFavorite = $this->recetteModel->isFavorite(current_user_id(), $id);
+        
+        // Gérer l'ajout/suppression des favoris
+        if (isset($_GET['favorite']) && $_GET['favorite'] === 'toggle') {
+            if ($isFavorite) {
+                $this->recetteModel->removeFromFavorites(current_user_id(), $id);
+                $_SESSION['success'] = "Recette retirée des favoris";
+            } else {
+                $this->recetteModel->addToFavorites(current_user_id(), $id);
+                $_SESSION['success'] = "Recette ajoutée aux favoris";
+            }
+            redirect("index.php?page=recette_details&id=" . $id);
+        }
+        
+        require_once 'views/front/recette_details.php';
     }
 
     public function suivi() {
@@ -255,10 +241,10 @@ class UserController {
         $cNow = (float)($todayLog['carbs_g'] ?? 0);
         $fNow = (float)($todayLog['fat_g'] ?? 0);
         if ($pNow < $pTarget * 0.7) {
-            $recommendations[] = "Protéines un peu basses aujourd’hui. Ajoutez une source protéinée (œufs, poulet, légumineuses, fromage blanc).";
+            $recommendations[] = "Protéines un peu basses aujourd'hui. Ajoutez une source protéinée (œufs, poulet, légumineuses, fromage blanc).";
         }
         if ($fNow > $fTarget * 1.3) {
-            $recommendations[] = "Lipides un peu élevés. Favorisez des cuissons plus légères et des portions d’huiles maîtrisées.";
+            $recommendations[] = "Lipides un peu élevés. Favorisez des cuissons plus légères et des portions d'huiles maîtrisées.";
         }
         if (!empty($userData['allergies'])) {
             $recommendations[] = "Allergies enregistrées : " . (string)$userData['allergies'] . ". Nous éviterons ces ingrédients dans les suggestions.";
@@ -267,9 +253,12 @@ class UserController {
         require_once 'views/front/suivi.php';
     }
 
+    /**
+     * Upload d'image de profil
+     */
     private function uploadImage($file, $userId){
-        $targetDirWeb = "../views/assets/uploads/";
-        $targetDirFs = __DIR__ . "/../views/assets/uploads/";
+        $targetDirWeb = "../views/uploads/";
+        $targetDirFs = __DIR__ . "/../views/uploads/";
 
         // Créer le dossier s'il n'existe pas
         if (!is_dir($targetDirFs)) {
