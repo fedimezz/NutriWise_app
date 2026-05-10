@@ -109,6 +109,7 @@
                 action="index.php?page=admin_edit_aliment&id=<?= (int)$aliment['id'] ?>"
                 method="POST"
                 enctype="multipart/form-data"
+                novalidate
             >
 
                 <input

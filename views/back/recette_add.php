@@ -180,7 +180,7 @@
         <?php endif; ?>
 
         <div class="form-container">
-            <form action="index.php?page=admin_add_recette" method="POST" enctype="multipart/form-data">
+            <form action="index.php?page=admin_add_recette" method="POST" enctype="multipart/form-data" novalidate>
                 <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
 
                 <div class="form-section">

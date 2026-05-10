@@ -89,6 +89,98 @@ class AdminController
         $usersList = $this->userModel->getAllUsers();
         require_once 'views/back/users.php';
     }
+    /**
+ * Modifier une recette
+ */
+public function editRecette() {
+    $id = (int)($_GET['id'] ?? 0);
+    
+    // Récupérer la recette
+    $stmt = $this->pdo->prepare("SELECT * FROM recettes WHERE id = :id");
+    $stmt->execute([':id' => $id]);
+    $recette = $stmt->fetch(PDO::FETCH_ASSOC);
+    
+    if (!$recette) {
+        $_SESSION['error'] = "Recette non trouvée";
+        redirect('index.php?page=admin_recettes');
+    }
+    
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        // CSRF check
+        if (!isset($_POST['_csrf']) || $_POST['_csrf'] !== $_SESSION['_csrf']) {
+            $_SESSION['error'] = "Erreur de sécurité";
+            redirect('index.php?page=admin_edit_recette&id=' . $id);
+        }
+        
+        // Récupérer les données
+        $nom = trim($_POST['nom'] ?? '');
+        $description = trim($_POST['description'] ?? '');
+        $categorie = $_POST['categorie'] ?? '';
+        $difficulte = $_POST['difficulte'] ?? 'Facile';
+        $temps_preparation = (int)($_POST['temps_preparation'] ?? 0);
+        $temps_cuisson = (int)($_POST['temps_cuisson'] ?? 0);
+        $portions = (int)($_POST['portions'] ?? 4);
+        
+        // Validation simple
+        if (empty($nom)) {
+            $_SESSION['error'] = "Le nom de la recette est obligatoire";
+            redirect('index.php?page=admin_edit_recette&id=' . $id);
+        }
+        
+        // Gestion de l'image
+        $image = $recette['image'];
+        if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+            $uploadDir = 'views/assets/uploads/recettes/';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0777, true);
+            }
+            $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+            $fileName = time() . '_' . uniqid() . '.' . $ext;
+            $targetPath = $uploadDir . $fileName;
+            
+            if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
+                $image = $fileName;
+            }
+        }
+        
+        // Mise à jour
+        try {
+            $sql = "UPDATE recettes SET 
+                    nom = :nom, 
+                    description = :description, 
+                    categorie = :categorie, 
+                    difficulte = :difficulte, 
+                    temps_preparation = :temps_preparation, 
+                    temps_cuisson = :temps_cuisson, 
+                    portions = :portions, 
+                    image = :image 
+                    WHERE id = :id";
+                    
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute([
+                ':nom' => $nom,
+                ':description' => $description,
+                ':categorie' => $categorie,
+                ':difficulte' => $difficulte,
+                ':temps_preparation' => $temps_preparation,
+                ':temps_cuisson' => $temps_cuisson,
+                ':portions' => $portions,
+                ':image' => $image,
+                ':id' => $id
+            ]);
+            
+            $_SESSION['success'] = "Recette modifiée avec succès !";
+            redirect('index.php?page=admin_recettes');
+            
+        } catch (PDOException $e) {
+            $_SESSION['error'] = "Erreur : " . $e->getMessage();
+            redirect('index.php?page=admin_edit_recette&id=' . $id);
+        }
+    }
+    
+    // Afficher le formulaire
+    require_once 'views/back/recette_edit.php';
+}
 
     /**
      * Afficher la liste des recettes pour l'admin

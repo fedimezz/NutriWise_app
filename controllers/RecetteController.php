@@ -1,242 +1,296 @@
 <?php
-// controllers/RecetteController.php
 
-require_once 'models/RecetteModel.php';
+class ChatbotController {
 
-class RecetteController {
-    private $pdo;
-    private $recetteModel;
+    private PDO $pdo;
 
-    public function __construct($pdo) {
+    public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
-        $this->recetteModel = new RecetteModel();
     }
 
-    /**
-     * Afficher la liste des recettes pour l'admin
-     */
-    public function adminList() {
-        // Vérifier les droits admin
-        if (role_rank(current_user_role()) < role_rank(ROLE_ADMIN)) {
-            redirect('index.php?page=home');
-        }
+    /*
+    |--------------------------------------------------------------------------
+    | API
+    |--------------------------------------------------------------------------
+    */
 
-        // Paramètres de pagination et recherche
-        $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
-        $search = $_GET['search'] ?? '';
-        $perPage = 10;
+    public function api() {
 
-        // Récupérer les recettes
-        $recettesList = $this->recetteModel->getAllRecettes($search, null, $page, $perPage);
-        $totalRecettes = $this->recetteModel->countRecettes($search, null);
-        
-        // Calculer le nombre total d'ingrédients utilisés
-        $totalIngredients = $this->getTotalIngredientsCount();
-        $totalCategories = $this->getTotalCategoriesCount();
+        header('Content-Type: application/json; charset=utf-8');
 
-        $totalPages = ceil($totalRecettes / $perPage);
-        $currentPage = $page;
+        try {
 
-        // CHEMIN CORRIGÉ
-        require_once 'views/back/recettes.php';
-    }
+            $data = json_decode(file_get_contents("php://input"), true);
 
-    /**
-     * Ajouter une recette
-     */
-    public function adminAdd() {
-        if (role_rank(current_user_role()) < role_rank(ROLE_ADMIN)) {
-            redirect('index.php?page=home');
-        }
+            $message = trim(strtolower($data['message'] ?? ''));
 
-        // Récupérer les ingrédients pour le formulaire
-        $ingredients = $this->getAllIngredients();
-
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            csrf_check();
-            
-            $nom = $_POST['nom'] ?? '';
-            $description = $_POST['description'] ?? '';
-            $categorie = $_POST['categorie'] ?? '';
-            $difficulte = $_POST['difficulte'] ?? 'Facile';
-            $temps_preparation = (int)($_POST['temps_preparation'] ?? 0);
-            $temps_cuisson = (int)($_POST['temps_cuisson'] ?? 0);
-            $portions = (int)($_POST['portions'] ?? 4);
-            
-            // Gestion de l'image
-            $image = '';
-            if (isset($_POST['image_type']) && $_POST['image_type'] === 'url' && !empty($_POST['image_url'])) {
-                $image = $_POST['image_url'];
-            } elseif (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                $uploadDir = 'views/assets/uploads/recettes/';
-                if (!is_dir($uploadDir)) {
-                    mkdir($uploadDir, 0777, true);
-                }
-                $fileName = time() . '_' . basename($_FILES['image']['name']);
-                $targetPath = $uploadDir . $fileName;
-                if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
-                    $image = $fileName;
-                }
-            }
-            
-            try {
-                $sql = "INSERT INTO recettes (nom, description, categorie, difficulte, temps_preparation, temps_cuisson, portions, image, date_creation) 
-                        VALUES (:nom, :description, :categorie, :difficulte, :temps_preparation, :temps_cuisson, :portions, :image, NOW())";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
-                    ':nom' => $nom,
-                    ':description' => $description,
-                    ':categorie' => $categorie,
-                    ':difficulte' => $difficulte,
-                    ':temps_preparation' => $temps_preparation,
-                    ':temps_cuisson' => $temps_cuisson,
-                    ':portions' => $portions,
-                    ':image' => $image
+            if (!$message) {
+                echo json_encode([
+                    'success' => false,
+                    'response' => 'Veuillez entrer un message.'
                 ]);
-                
-                $_SESSION['success'] = "Recette ajoutée avec succès !";
-                redirect('index.php?page=admin_recettes');
-            } catch (PDOException $e) {
-                $_SESSION['error'] = "Erreur : " . $e->getMessage();
+                exit;
+            }
+
+            $response = $this->handleMessage($message);
+
+            echo json_encode([
+                'success' => true,
+                'response' => $response
+            ]);
+
+        } catch (Throwable $e) {
+
+            echo json_encode([
+                'success' => false,
+                'response' => 'Erreur serveur.',
+                'error' => $e->getMessage()
+            ]);
+        }
+
+        exit;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | MAIN LOGIC
+    |--------------------------------------------------------------------------
+    */
+
+    private function handleMessage(string $message): string {
+
+        // BONJOUR
+
+        if (
+            str_contains($message, 'bonjour') ||
+            str_contains($message, 'salut')
+        ) {
+
+            return "
+            👋 Bonjour !
+
+            Je suis l'assistant NutriWise 🥗
+
+            Je peux :
+            • Trouver des recettes
+            • Donner les calories
+            • Afficher les ingrédients
+            • Suggérer des plats rapides
+            • Trouver des recettes végétariennes
+            ";
+        }
+
+        // RECETTES
+
+        if (
+            str_contains($message, 'recette') ||
+            str_contains($message, 'plat')
+        ) {
+
+            return $this->searchRecipes($message);
+        }
+
+        // CALORIES / NUTRITION
+
+        if (
+            str_contains($message, 'calorie') ||
+            str_contains($message, 'nutrition') ||
+            str_contains($message, 'protéine') ||
+            str_contains($message, 'glucide')
+        ) {
+
+            return $this->searchFood($message);
+        }
+
+        return "
+        🤔 Je n'ai pas compris.
+
+        Exemples :
+        • Recette végétarienne
+        • Calories banane
+        • Recette rapide
+        • Recette petit-déjeuner
+        ";
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | RECIPES
+    |--------------------------------------------------------------------------
+    */
+
+    private function searchRecipes(string $message): string {
+
+        $sql = "
+            SELECT *
+            FROM recettes
+            WHERE is_public = 1
+        ";
+
+        $params = [];
+
+        // catégorie
+
+        if (str_contains($message, 'petit')) {
+            $sql .= " AND categorie = :cat";
+            $params[':cat'] = 'Petit-déjeuner';
+        }
+
+        if (str_contains($message, 'dessert')) {
+            $sql .= " AND categorie = :cat2";
+            $params[':cat2'] = 'Dessert';
+        }
+
+        // rapide
+
+        if (
+            str_contains($message, 'rapide') ||
+            str_contains($message, 'vite')
+        ) {
+
+            $sql .= "
+                AND (temps_preparation + temps_cuisson) <= 30
+            ";
+        }
+
+        // végétarien
+
+        if (
+            str_contains($message, 'végétarien') ||
+            str_contains($message, 'vegetarien')
+        ) {
+
+            $sql .= "
+                AND tags LIKE :veg
+            ";
+
+            $params[':veg'] = '%légumes%';
+        }
+
+        $sql .= "
+            ORDER BY views DESC
+            LIMIT 5
+        ";
+
+        $stmt = $this->pdo->prepare($sql);
+
+        $stmt->execute($params);
+
+        $recipes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$recipes) {
+
+            return "😕 Aucune recette trouvée.";
+        }
+
+        $response = "🍽️ Recettes trouvées :<br><br>";
+
+        foreach ($recipes as $recipe) {
+
+            $time =
+                (int)$recipe['temps_preparation']
+                +
+                (int)$recipe['temps_cuisson'];
+
+            $response .= "
+                <div style='margin-bottom:15px'>
+                    <strong>
+                        {$recipe['nom']}
+                    </strong><br>
+
+                    📂 {$recipe['categorie']}<br>
+
+                    ⏱️ {$time} min<br>
+
+                    ⭐ {$recipe['difficulte']}<br>
+
+                    📝 {$recipe['description']}
+                </div>
+            ";
+        }
+
+        return $response;
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | FOOD INFO
+    |--------------------------------------------------------------------------
+    */
+
+    private function searchFood(string $message): string {
+
+        $food = $this->extractFoodName($message);
+
+        if (!$food) {
+            return "🥑 Quel aliment ?";
+        }
+
+        $stmt = $this->pdo->prepare("
+            SELECT *
+            FROM aliments
+            WHERE LOWER(nom) LIKE :food
+            LIMIT 1
+        ");
+
+        $stmt->execute([
+            ':food' => '%' . strtolower($food) . '%'
+        ]);
+
+        $aliment = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$aliment) {
+
+            return "😕 Aliment non trouvé.";
+        }
+
+        return "
+        🥗 <strong>{$aliment['nom']}</strong><br><br>
+
+        🔥 Calories : {$aliment['calories']} kcal<br>
+
+        💪 Protéines : {$aliment['proteines']} g<br>
+
+        🍞 Glucides : {$aliment['glucides']} g<br>
+
+        🧈 Lipides : {$aliment['lipides']} g<br>
+
+        🌾 Fibres : {$aliment['fibres']} g<br>
+
+        🌱 Eco score : {$aliment['eco_score']}
+        ";
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | EXTRACT FOOD
+    |--------------------------------------------------------------------------
+    */
+
+    private function extractFoodName(string $message): ?string {
+
+        $foods = [
+
+            'banane',
+            'avocat',
+            'pomme',
+            'brocoli',
+            'boeuf',
+            'poulet',
+            'saumon',
+            'riz',
+            'oeuf',
+            'fromage',
+            'carotte'
+        ];
+
+        foreach ($foods as $food) {
+
+            if (str_contains($message, $food)) {
+                return $food;
             }
         }
-        
-        // CHEMIN CORRIGÉ
-        require_once 'views/back/add_recette.php';
-    }
 
-    /**
-     * Modifier une recette
-     */
-    public function adminEdit() {
-        if (role_rank(current_user_role()) < role_rank(ROLE_ADMIN)) {
-            redirect('index.php?page=home');
-        }
-        
-        $id = (int)($_GET['id'] ?? 0);
-        $recette = $this->recetteModel->getRecetteById($id);
-        
-        if (!$recette) {
-            $_SESSION['error'] = "Recette non trouvée";
-            redirect('index.php?page=admin_recettes');
-        }
-        
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            csrf_check();
-            
-            $nom = $_POST['nom'] ?? '';
-            $description = $_POST['description'] ?? '';
-            $categorie = $_POST['categorie'] ?? '';
-            $difficulte = $_POST['difficulte'] ?? 'Facile';
-            $temps_preparation = (int)($_POST['temps_preparation'] ?? 0);
-            $temps_cuisson = (int)($_POST['temps_cuisson'] ?? 0);
-            $portions = (int)($_POST['portions'] ?? 4);
-            
-            $image = $recette['image'];
-            
-            // Gestion du changement d'image
-            if (isset($_POST['image_type'])) {
-                if ($_POST['image_type'] === 'url' && !empty($_POST['image_url'])) {
-                    $image = $_POST['image_url'];
-                } elseif ($_POST['image_type'] === 'upload' && isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
-                    $uploadDir = 'views/assets/uploads/recettes/';
-                    if (!is_dir($uploadDir)) {
-                        mkdir($uploadDir, 0777, true);
-                    }
-                    $fileName = time() . '_' . basename($_FILES['image']['name']);
-                    $targetPath = $uploadDir . $fileName;
-                    if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
-                        $image = $fileName;
-                    }
-                }
-                // Si image_type === 'keep', on garde l'image existante
-            }
-            
-            try {
-                $sql = "UPDATE recettes SET nom = :nom, description = :description, categorie = :categorie, 
-                        difficulte = :difficulte, temps_preparation = :temps_preparation, temps_cuisson = :temps_cuisson, 
-                        portions = :portions, image = :image WHERE id = :id";
-                $stmt = $this->pdo->prepare($sql);
-                $stmt->execute([
-                    ':nom' => $nom,
-                    ':description' => $description,
-                    ':categorie' => $categorie,
-                    ':difficulte' => $difficulte,
-                    ':temps_preparation' => $temps_preparation,
-                    ':temps_cuisson' => $temps_cuisson,
-                    ':portions' => $portions,
-                    ':image' => $image,
-                    ':id' => $id
-                ]);
-                
-                $_SESSION['success'] = "Recette modifiée avec succès !";
-                redirect('index.php?page=admin_recettes');
-            } catch (PDOException $e) {
-                $_SESSION['error'] = "Erreur : " . $e->getMessage();
-            }
-        }
-        
-        // CHEMIN CORRIGÉ
-        require_once 'views/back/recette_edit.php';
-    }
-
-    /**
-     * Supprimer une recette
-     */
-    public function adminDelete() {
-        if (role_rank(current_user_role()) < role_rank(ROLE_ADMIN)) {
-            redirect('index.php?page=home');
-        }
-        
-        $id = (int)($_GET['id'] ?? 0);
-        
-        try {
-            $stmt = $this->pdo->prepare("DELETE FROM recettes WHERE id = :id");
-            $stmt->execute([':id' => $id]);
-            $_SESSION['success'] = "Recette supprimée avec succès !";
-        } catch (PDOException $e) {
-            $_SESSION['error'] = "Erreur lors de la suppression : " . $e->getMessage();
-        }
-        
-        redirect('index.php?page=admin_recettes');
-    }
-
-    /**
-     * Compter le nombre total d'ingrédients utilisés dans les recettes
-     */
-    private function getTotalIngredientsCount() {
-        try {
-            $stmt = $this->pdo->query("SELECT COUNT(DISTINCT ingredient_id) as total FROM recette_ingredients");
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return (int)($result['total'] ?? 0);
-        } catch (PDOException $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Compter le nombre de catégories
-     */
-    private function getTotalCategoriesCount() {
-        try {
-            $stmt = $this->pdo->query("SELECT COUNT(DISTINCT categorie) as total FROM recettes WHERE categorie IS NOT NULL AND categorie != ''");
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            return (int)($result['total'] ?? 0);
-        } catch (PDOException $e) {
-            return 0;
-        }
-    }
-
-    /**
-     * Récupérer tous les ingrédients
-     */
-    private function getAllIngredients() {
-        try {
-            $stmt = $this->pdo->query("SELECT id, nom FROM aliments ORDER BY nom");
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        } catch (PDOException $e) {
-            return [];
-        }
+        return null;
     }
 }
-?>

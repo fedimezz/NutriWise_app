@@ -93,7 +93,7 @@
                     </div>
                 <?php endif; ?>
 
-                <form action="index.php?page=admin_add_recette" method="POST" enctype="multipart/form-data" id="recetteForm">
+                <form action="index.php?page=admin_add_recette" method="POST" enctype="multipart/form-data" id="recetteForm" novalidate>
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
 
                     <!-- Informations générales -->

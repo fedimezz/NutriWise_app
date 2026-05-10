@@ -1,224 +1,146 @@
 <?php
-// controllers/ChatbotController.php
+declare(strict_types=1);
+
+if (class_exists('ChatbotController', false)) {
+    return;
+}
 
 class ChatbotController {
-    private $pdo;
 
-    public function __construct($pdo) {
+    private PDO $pdo;
+
+    public function __construct(PDO $pdo) {
         $this->pdo = $pdo;
     }
 
     /**
-     * API endpoint pour le chatbot
+     * API endpoint chatbot
      */
-    public function api() {
-        header('Content-Type: application/json');
-        
-        $input = json_decode(file_get_contents('php://input'), true);
-        $message = strtolower(trim($input['message'] ?? ''));
-        
-        if (empty($message)) {
-            echo json_encode(['response' => 'Veuillez poser une question.']);
-            return;
+    public function api(): void {
+
+        header('Content-Type: application/json; charset=utf-8');
+
+        try {
+
+            $input = json_decode(file_get_contents('php://input'), true);
+
+            $message = strtolower(trim($input['message'] ?? ''));
+
+            if ($message === '') {
+                echo json_encode([
+                    'response' => 'Veuillez poser une question.'
+                ]);
+                return;
+            }
+
+            $response = $this->processMessage($message);
+
+            echo json_encode([
+                'response' => $response
+            ]);
+
+        } catch (Throwable $e) {
+
+            echo json_encode([
+                'response' => '❌ Erreur serveur chatbot.',
+                'error' => $e->getMessage()
+            ]);
         }
-        
-        $response = $this->processMessage($message);
-        echo json_encode(['response' => $response]);
     }
 
     /**
-     * Traiter le message et générer une réponse
+     * Router simple des messages
      */
-    private function processMessage($message) {
-        // Recherche de recettes
-        if (strpos($message, 'recette') !== false || strpos($message, 'plat') !== false) {
+    private function processMessage(string $message): string {
+
+        if (str_contains($message, 'recette') || str_contains($message, 'plat')) {
             return $this->searchRecipes($message);
         }
-        
-        // Recherche d'aliments / calories
-        if (strpos($message, 'calorie') !== false || strpos($message, 'kcal') !== false || 
-            strpos($message, 'valeur') !== false || strpos($message, 'nutrition') !== false) {
-            return $this->searchFoodNutrition($message);
+
+        if (
+            str_contains($message, 'calorie') ||
+            str_contains($message, 'kcal') ||
+            str_contains($message, 'nutrition')
+        ) {
+            return $this->searchFood($message);
         }
-        
-        // Recherche d'ingrédients spécifiques
-        if (strpos($message, 'combien') !== false || strpos($message, 'contient') !== false) {
-            return $this->searchFoodInfo($message);
+
+        if (str_contains($message, 'bonjour') || str_contains($message, 'salut')) {
+            return "👋 Bonjour ! Je suis NutriWise Assistant.";
         }
-        
-        // Suggestions générales
-        if (strpos($message, 'bonjour') !== false || strpos($message, 'salut') !== false) {
-            return "👋 Bonjour ! Je suis l'assistant NutriWise. Je peux vous aider à trouver des recettes ou des informations nutritionnelles. Que souhaitez-vous ?";
-        }
-        
-        if (strpos($message, 'aide') !== false || strpos($message, 'help') !== false) {
-            return "🤖 Voici ce que je peux faire :\n\n• Trouver des recettes par catégorie (petit-déjeuner, entrée, plat, dessert)\n• Donner les calories et valeurs nutritionnelles des aliments\n• Suggérer des recettes rapides ou végétariennes\n\nExemples :\n- 'Recette de petit-déjeuner'\n- 'Calories d'une banane'\n- 'Recette végétarienne facile'";
-        }
-        
-        // Réponse par défaut
-        return $this->getDefaultResponse($message);
+
+        return "🤔 Je n'ai pas compris. Essayez : recette, calories banane, etc.";
     }
 
     /**
-     * Rechercher des recettes
+     * Search recipes
      */
-    private function searchRecipes($message) {
-        $categorie = $this->extractCategory($message);
-        $difficulte = $this->extractDifficulty($message);
-        $isVegetarian = strpos($message, 'végétarien') !== false || strpos($message, 'vegetarien') !== false;
-        $isRapide = strpos($message, 'rapide') !== false || strpos($message, 'vite') !== false;
-        
-        $sql = "SELECT nom, description, categorie, difficulte, temps_preparation, temps_cuisson 
-                FROM recettes WHERE 1=1";
-        $params = [];
-        
-        if ($categorie) {
-            $sql .= " AND categorie = :categorie";
-            $params[':categorie'] = $categorie;
-        }
-        
-        if ($difficulte) {
-            $sql .= " AND difficulte = :difficulte";
-            $params[':difficulte'] = $difficulte;
-        }
-        
-        if ($isRapide) {
-            $sql .= " AND (temps_preparation + temps_cuisson) <= 30";
-        }
-        
-        $sql .= " ORDER BY vues DESC LIMIT 5";
-        
+    private function searchRecipes(string $message): string {
+
         try {
+
+            $sql = "SELECT nom, description, temps_preparation, temps_cuisson
+                    FROM recettes
+                    LIMIT 5";
+
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute($params);
+            $stmt->execute();
+
             $recettes = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            
-            if (empty($recettes)) {
-                return "😕 Je n'ai pas trouvé de recette correspondant à votre recherche. Essayez avec d'autres mots-clés !";
+
+            if (!$recettes) {
+                return "😕 Aucune recette trouvée.";
             }
-            
-            $response = "🍽️ Voici quelques recettes qui pourraient vous intéresser :\n\n";
-            foreach ($recettes as $recette) {
-                $temps = ($recette['temps_preparation'] + $recette['temps_cuisson']);
-                $response .= "• <strong>" . htmlspecialchars($recette['nom']) . "</strong>\n";
-                $response .= "  " . htmlspecialchars(substr($recette['description'] ?? '', 0, 80)) . "...\n";
-                $response .= "  ⏱️ " . ($temps > 0 ? $temps . ' min' : 'Temps non spécifié') . "\n\n";
+
+            $response = "🍽️ Recettes :\n\n";
+
+            foreach ($recettes as $r) {
+
+                $response .= "• " . $r['nom'] . "\n";
+                $response .= "  ⏱ " . ($r['temps_preparation'] + $r['temps_cuisson']) . " min\n\n";
             }
-            $response .= "✨ Vous souhaitez plus de détails sur une recette ? Dites-moi laquelle !";
-            
+
             return $response;
-        } catch (PDOException $e) {
-            return "❌ Désolé, je n'ai pas pu accéder aux recettes pour le moment.";
+
+        } catch (Throwable $e) {
+            return "❌ Erreur recettes.";
         }
     }
 
     /**
-     * Rechercher les infos nutritionnelles d'un aliment
+     * Search food nutrition
      */
-    private function searchFoodNutrition($message) {
-        $aliment = $this->extractFoodName($message);
-        
-        if (!$aliment) {
-            return "🥗 Quel aliment souhaitez-vous connaître ? Donnez-moi son nom (ex: 'Calories de la banane')";
-        }
-        
-        $sql = "SELECT nom, calories, proteines, glucides, lipides, fibres 
-                FROM aliments WHERE LOWER(nom) LIKE :nom LIMIT 1";
-        
+    private function searchFood(string $message): string {
+
         try {
+
+            $words = explode(' ', $message);
+            $food = end($words);
+
+            $sql = "SELECT nom, calories, proteines, glucides, lipides
+                    FROM aliments
+                    WHERE LOWER(nom) LIKE :nom
+                    LIMIT 1";
+
             $stmt = $this->pdo->prepare($sql);
-            $stmt->execute([':nom' => '%' . strtolower($aliment) . '%']);
-            $food = $stmt->fetch(PDO::FETCH_ASSOC);
-            
-            if ($food) {
-                return "🥑 <strong>" . htmlspecialchars($food['nom']) . "</strong>\n\n" .
-                       "📊 Valeurs nutritionnelles pour 100g :\n" .
-                       "🔥 Calories : " . ($food['calories'] ?? 'N/A') . " kcal\n" .
-                       "💪 Protéines : " . ($food['proteines'] ?? 'N/A') . " g\n" .
-                       "🍚 Glucides : " . ($food['glucides'] ?? 'N/A') . " g\n" .
-                       "🧈 Lipides : " . ($food['lipides'] ?? 'N/A') . " g\n" .
-                       "🌾 Fibres : " . ($food['fibres'] ?? 'N/A') . " g";
-            } else {
-                return "😕 Je n'ai pas trouvé d'information nutritionnelle pour '{$aliment}'. Essayez un autre aliment (pomme, poulet, riz...)";
+            $stmt->execute([
+                ':nom' => '%' . $food . '%'
+            ]);
+
+            $data = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            if (!$data) {
+                return "😕 Aliment non trouvé.";
             }
-        } catch (PDOException $e) {
-            return "❌ Désolé, je n'ai pas pu accéder à la base de données des aliments.";
-        }
-    }
 
-    /**
-     * Rechercher des infos générales sur un aliment
-     */
-    private function searchFoodInfo($message) {
-        return $this->searchFoodNutrition($message);
-    }
+            return "🥗 " . $data['nom'] . "\n"
+                . "🔥 Calories: " . $data['calories'] . " kcal\n"
+                . "💪 Protéines: " . $data['proteines'] . " g\n"
+                . "🍞 Glucides: " . $data['glucides'] . " g\n"
+                . "🧈 Lipides: " . $data['lipides'] . " g";
 
-    /**
-     * Extraire la catégorie du message
-     */
-    private function extractCategory($message) {
-        if (strpos($message, 'petit-déjeuner') !== false || strpos($message, 'petit dejeuner') !== false) {
-            return 'Petit-déjeuner';
+        } catch (Throwable $e) {
+            return "❌ Erreur nutrition.";
         }
-        if (strpos($message, 'entrée') !== false || strpos($message, 'entree') !== false) {
-            return 'Entrée';
-        }
-        if (strpos($message, 'plat principal') !== false || strpos($message, 'principal') !== false) {
-            return 'Plat principal';
-        }
-        if (strpos($message, 'dessert') !== false) {
-            return 'Dessert';
-        }
-        return null;
-    }
-
-    /**
-     * Extraire la difficulté du message
-     */
-    private function extractDifficulty($message) {
-        if (strpos($message, 'facile') !== false) {
-            return 'Facile';
-        }
-        if (strpos($message, 'moyen') !== false) {
-            return 'Moyen';
-        }
-        if (strpos($message, 'difficile') !== false) {
-            return 'Difficile';
-        }
-        return null;
-    }
-
-    /**
-     * Extraire le nom d'un aliment du message
-     */
-    private function extractFoodName($message) {
-        $mots = explode(' ', $message);
-        $alimentsConnus = ['banane', 'pomme', 'avocat', 'poulet', 'boeuf', 'poisson', 'riz', 'pâtes', 
-                           'pain', 'oeuf', 'fromage', 'lait', 'yaourt', 'carotte', 'brocoli', 'tomate'];
-        
-        foreach ($mots as $mot) {
-            $mot = preg_replace('/[^a-zàâçéèêëîïôûùüÿñæœ]/i', '', strtolower($mot));
-            if (in_array($mot, $alimentsConnus)) {
-                return $mot;
-            }
-        }
-        
-        // Si on trouve pas, prendre le dernier mot (souvent l'aliment)
-        $lastWord = end($mots);
-        $lastWord = preg_replace('/[^a-zàâçéèêëîïôûùüÿñæœ]/i', '', strtolower($lastWord));
-        return strlen($lastWord) > 2 ? $lastWord : null;
-    }
-
-    /**
-     * Réponse par défaut
-     */
-    private function getDefaultResponse($message) {
-        $responses = [
-            "🤔 Je n'ai pas bien compris. Essayez de me parler de recettes ou d'aliments !\n\nExemples :\n• 'Recette de plat principal facile'\n• 'Calories d'une pomme'\n• 'Recette végétarienne rapide'",
-            "😊 Je suis spécialisé dans la nutrition ! Vous pouvez me demander :\n• Des recettes par catégorie\n• Les calories d'un aliment\n• Des suggestions de plats sains",
-            "💡 Astuce : Pour une recette, dites 'Recette de [catégorie]'\nPour un aliment, dites 'Calories de [aliment]'"
-        ];
-        return $responses[array_rand($responses)];
     }
 }
-?>

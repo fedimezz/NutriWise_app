@@ -70,17 +70,6 @@
             border-radius: 8px;
             border: 1px solid var(--vert-pale);
         }
-        .image-type-group {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 1rem;
-        }
-        .image-type-group label {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            cursor: pointer;
-        }
         .form-actions {
             display: flex;
             gap: 1rem;
@@ -105,6 +94,9 @@
             cursor: pointer;
             text-decoration: none;
         }
+        .btn-save:hover, .btn-cancel:hover {
+            opacity: 0.8;
+        }
         .alert-error {
             background: #FFEBEE;
             color: #C62828;
@@ -112,11 +104,12 @@
             border-radius: 8px;
             margin-bottom: 1rem;
         }
-        small {
-            color: #888;
-            font-size: 0.7rem;
-            display: block;
-            margin-top: 0.25rem;
+        .alert-success {
+            background: var(--vert-pale);
+            color: var(--vert-profond);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -147,8 +140,14 @@
             </div>
         <?php endif; ?>
 
+        <?php if(isset($_SESSION['success'])): ?>
+            <div class="alert-success">
+                <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
+            </div>
+        <?php endif; ?>
+
         <div class="form-container">
-            <form action="index.php?page=admin_edit_recette&id=<?= $recette['id'] ?>" method="POST" enctype="multipart/form-data">
+            <form method="POST" enctype="multipart/form-data" novalidate>
                 <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token()) ?>">
 
                 <div class="form-section">
@@ -156,15 +155,15 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label>Nom de la recette *</label>
-                            <input type="text" name="nom" required value="<?= htmlspecialchars($recette['nom']) ?>">
+                            <input type="text" name="nom" value="<?= htmlspecialchars($recette['nom'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
                             <label>Catégorie *</label>
-                            <select name="categorie" required>
-                                <option value="Petit-déjeuner" <?= $recette['categorie'] == 'Petit-déjeuner' ? 'selected' : '' ?>>🍳 Petit-déjeuner</option>
-                                <option value="Entrée" <?= $recette['categorie'] == 'Entrée' ? 'selected' : '' ?>>🥗 Entrée</option>
-                                <option value="Plat principal" <?= $recette['categorie'] == 'Plat principal' ? 'selected' : '' ?>>🍽️ Plat principal</option>
-                                <option value="Dessert" <?= $recette['categorie'] == 'Dessert' ? 'selected' : '' ?>>🍰 Dessert</option>
+                            <select name="categorie">
+                                <option value="Petit-déjeuner" <?= ($recette['categorie'] ?? '') == 'Petit-déjeuner' ? 'selected' : '' ?>>🍳 Petit-déjeuner</option>
+                                <option value="Entrée" <?= ($recette['categorie'] ?? '') == 'Entrée' ? 'selected' : '' ?>>🥗 Entrée</option>
+                                <option value="Plat principal" <?= ($recette['categorie'] ?? '') == 'Plat principal' ? 'selected' : '' ?>>🍽️ Plat principal</option>
+                                <option value="Dessert" <?= ($recette['categorie'] ?? '') == 'Dessert' ? 'selected' : '' ?>>🍰 Dessert</option>
                             </select>
                         </div>
                     </div>
@@ -204,23 +203,22 @@
                     <h3><i class="fas fa-image"></i> Image</h3>
                     
                     <?php if(!empty($recette['image'])): ?>
+                        <?php 
+                        $imagePath = $recette['image'];
+                        if(!filter_var($imagePath, FILTER_VALIDATE_URL)) {
+                            $imagePath = 'views/assets/uploads/recettes/' . $imagePath;
+                        }
+                        ?>
                         <div class="current-image">
                             <label>Image actuelle :</label><br>
-                            <img src="<?= htmlspecialchars(getAdminRecetteImageUrl($recette['image'])) ?>" alt="Image actuelle">
+                            <img src="<?= htmlspecialchars($imagePath) ?>" alt="Image actuelle">
                         </div>
                     <?php endif; ?>
                     
-                    <div class="image-type-group" style="margin-top: 1rem;">
-                        <label><input type="radio" name="image_type" value="keep" checked> 📁 Garder l'image actuelle</label>
-                        <label><input type="radio" name="image_type" value="upload"> 📤 Changer l'image</label>
-                        <label><input type="radio" name="image_type" value="url"> 🔗 URL externe</label>
-                    </div>
-                    
-                    <div id="upload_input" style="display:none; margin-top: 1rem;">
+                    <div class="form-group" style="margin-top: 1rem;">
+                        <label>Nouvelle image (optionnel)</label>
                         <input type="file" name="image" accept="image/*">
-                    </div>
-                    <div id="url_input" style="display:none; margin-top: 1rem;">
-                        <input type="text" name="image_url" placeholder="https://...">
+                        <small>Laissez vide pour garder l'image actuelle</small>
                     </div>
                 </div>
 
@@ -232,14 +230,5 @@
         </div>
     </main>
 </div>
-
-<script>
-    document.querySelectorAll('input[name="image_type"]').forEach(radio => {
-        radio.addEventListener('change', function() {
-            document.getElementById('upload_input').style.display = this.value === 'upload' ? 'block' : 'none';
-            document.getElementById('url_input').style.display = this.value === 'url' ? 'block' : 'none';
-        });
-    });
-</script>
 </body>
 </html>

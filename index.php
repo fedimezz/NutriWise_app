@@ -4,6 +4,7 @@ declare(strict_types=1);
 // --- App bootstrap (no extra files) ---
 $rootDir = __DIR__;
 
+
 // Load local environment variables from .env (for XAMPP/Windows setups)
 // Format: KEY=value (no quotes needed). Lines starting with # are ignored.
 $envFile = $rootDir . DIRECTORY_SEPARATOR . '.env';
@@ -165,7 +166,8 @@ require_once 'controllers/AlimentController.php';
 require_once 'controllers/ActivityLogController.php';
 require_once 'controllers/NotificationController.php';
 require_once 'controllers/RecetteController.php';
-
+require_once __DIR__ . '/controllers/ChatbotController.php';
+require_once 'controllers/SuiviController.php';
 
 // On récupère la page demandée, sinon 'home'
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
@@ -226,10 +228,35 @@ switch ($page) {
         $user->recettes();
         break;
 
-    case 'suivi':
-        $user = new UserController();
-        $user->suivi();
-        break;
+case 'suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->index();
+    break;
+
+case 'add_meal_suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->addMeal();
+    break;
+
+case 'add_activity_suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->addActivity();
+    break;
+
+case 'add_water_suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->addWater();
+    break;
+
+case 'delete_meal_suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->deleteMeal();
+    break;
+
+case 'delete_activity_suivi':
+    $suiviController = new SuiviController($pdo);
+    $suiviController->deleteActivity();
+    break;
 
   case 'motpasse':
     // Sécurité : empêcher accès direct au step=verify sans session valide
@@ -309,15 +336,15 @@ case 'recette_details':
         require_once 'views/front/suivi.php';
         break;
         // Ajouter dans votre routeur/index.php
-case 'chatbot':
-    $controller = new ChatbotController($pdo);
-    $controller->show();
-    break;
 
 case 'chatbot_api':
+
+
     $controller = new ChatbotController($pdo);
+
     $controller->api();
-    break;
+
+    exit;
 
 // --- BACKEND (ADMIN) ---
 case 'admin_dashboard':

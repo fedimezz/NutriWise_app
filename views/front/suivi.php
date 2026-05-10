@@ -1,439 +1,750 @@
-<?php // Access control is handled in controller/router (PHP), not in the view. ?>
-<?php if(($page ?? '') === 'admin_plans'): ?>
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Plans - Admin | NutriWise</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="views/assets/css/dashboard.css">
-</head>
-<body>
-    <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="logo"><span>🌿</span><span>NutriWise</span></div>
-            <nav>
-                <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Dashboard</a>
-                <a href="index.php?page=admin_users" class="<?= ($page=='admin_users') ? 'active' : '' ?>">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments') ? 'active' : '' ?>">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-                <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
-            </nav>
-            <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
-        </aside>
-
-        <main class="main-content">
-            <header>
-                <h1>Plans alimentaires</h1>
-                <a href="index.php?page=home" class="view-link" style="text-decoration:none;">← Retour à l’accueil</a>
-            </header>
-
-            <div class="recent-users">
-                <div class="section-header">
-                    <h2>Créer un plan</h2>
-                </div>
-
-                <?php if(isset($_SESSION['success'])): ?>
-                    <p style="color:#1b5e20; margin: 10px 0; font-weight:600;"><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['success']); ?></p>
-                <?php endif; ?>
-                <?php if(isset($_SESSION['error'])): ?>
-                    <p style="color:#b71c1c; margin: 10px 0; font-weight:600;"><?= htmlspecialchars($_SESSION['error'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['error']); ?></p>
-                <?php endif; ?>
-
-                <form method="POST" action="index.php?page=admin_plans" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;" novalidate>
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
-                    <input type="hidden" name="action" value="create_plan">
-                    <div style="grid-column: 1 / -1;">
-                        <label style="font-weight:700;">Titre</label>
-                        <input name="title" required style="width:100%; padding:12px; border:1px solid #c8e6c9; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Assigner à (optionnel)</label>
-                        <select name="assigned_to" style="width:100%; padding:12px; border:1px solid #c8e6c9; border-radius:12px;">
-                            <option value="">— Aucun —</option>
-                            <?php foreach(($usersList ?? []) as $u): ?>
-                                <option value="<?= (int)$u['id'] ?>"><?= htmlspecialchars(($u['prenom'] ?? '').' '.($u['nom'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> (<?= htmlspecialchars($u['email'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>)</option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Objectif</label>
-                        <input name="goal" placeholder="Perte / Maintien / Prise" style="width:100%; padding:12px; border:1px solid #c8e6c9; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Calories cible</label>
-                        <input type="number" name="calories_target" placeholder="ex: 2200" style="width:100%; padding:12px; border:1px solid #c8e6c9; border-radius:12px;">
-                    </div>
-                    <div style="display:flex; align-items:center; gap:10px;">
-                        <input type="checkbox" name="is_active" checked>
-                        <label style="font-weight:700;">Actif</label>
-                    </div>
-                    <div style="grid-column: 1 / -1;">
-                        <button type="submit" class="view-link" style="border:0; background:var(--vert-principal); color:#fff; padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer;">Créer</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="recent-users" style="margin-top:16px;">
-                <div class="section-header">
-                    <h2>Plans existants</h2>
-                </div>
-                <table class="users-table">
-                    <thead>
-                        <tr><th>Titre</th><th>Objectif</th><th>Calories</th><th>Assigné à</th><th>Actif</th></tr>
-                    </thead>
-                    <tbody>
-                        <?php if(empty($plans ?? [])): ?>
-                            <tr><td colspan="5" style="padding:16px;">Aucun plan.</td></tr>
-                        <?php else: ?>
-                            <?php foreach($plans as $p): ?>
-                                <tr>
-                                    <td><?= htmlspecialchars($p['title'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars($p['goal'] ?? '-', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars((string)($p['calories_target'] ?? '-'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars(trim(($p['at_prenom'] ?? '').' '.($p['at_nom'] ?? '')) ?: '-', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td><?= ((int)($p['is_active'] ?? 0) === 1) ? '✅' : '—' ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-        </main>
-    </div>
-</body>
-</html>
-<?php else: ?>
+<?php
+// views/front/suivi.php
+?>
 
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Suivi - NutriWise</title>
-    <link rel="stylesheet" href="views/assets/css/style.css">
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-</head>
-<body>
-    <div class="container">
-        <?php include_once 'partials/navbar.php'; ?>
-        
-        <?php if(($page ?? '') === 'nutritionist_dashboard'): ?>
-            <div class="page-header">
-                <h1 class="page-title">Espace Nutritionniste</h1>
-                <p class="page-subtitle">Créez des plans alimentaires et accompagnez vos utilisateurs efficacement.</p>
-            </div>
-
-            <div class="coming-soon" style="max-width: 900px;">
-                <div class="coming-soon-icon">🧑‍⚕️</div>
-                <h2>Tableau de bord</h2>
-                <p style="margin-bottom: 1.25rem;">
-                    Ici, vous pourrez bientôt créer des plans personnalisés, suivre l’adhérence et ajuster les objectifs en temps réel.
-                </p>
-
-                <div style="display:flex; gap:12px; justify-content:center; flex-wrap:wrap;">
-                    <a href="index.php?page=profile" class="btn-primary" style="text-decoration:none; padding:0.8rem 1.2rem; border-radius:14px; display:inline-block;">
-                        Voir mon profil
-                    </a>
-                    <a href="index.php?page=recettes" class="btn-primary" style="text-decoration:none; padding:0.8rem 1.2rem; border-radius:14px; display:inline-block;">
-                        Parcourir les recettes
-                    </a>
-                    <a href="index.php?page=aliments" class="btn-primary" style="text-decoration:none; padding:0.8rem 1.2rem; border-radius:14px; display:inline-block;">
-                        Base aliments
-                    </a>
-                </div>
-
-                <div style="margin-top:1.5rem; text-align:left; background:#f8f9fa; padding:16px; border-radius:16px;">
-                    <h3 style="margin:0 0 8px; color:#2e7d32;">À venir dans cet espace</h3>
-                    <ul style="margin:0; padding-left: 18px; color:#2c3e2f;">
-                        <li>Création de plans (par objectifs + calories/jour)</li>
-                        <li>Bibliothèque de repas & recettes validées</li>
-                        <li>Suivi des progrès (poids, IMC, apports)</li>
-                        <li>Conseils automatiques basés sur les données</li>
-                    </ul>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="page-header">
-                <h1 class="page-title">Suivi & progression</h1>
-                <p class="page-subtitle">Enregistrez vos calories et vos macros chaque jour.</p>
-            </div>
-
-            <?php if(isset($_SESSION['success'])): ?>
-                <div style="max-width: 900px; margin: 0 auto 12px; background:#d4edda; color:#155724; padding:12px; border-radius:12px;">
-                    <?= htmlspecialchars($_SESSION['success'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['success']); ?>
-                </div>
-            <?php endif; ?>
-            <?php if(isset($_SESSION['error'])): ?>
-                <div style="max-width: 900px; margin: 0 auto 12px; background:#f8d7da; color:#721c24; padding:12px; border-radius:12px;">
-                    <?= htmlspecialchars($_SESSION['error'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['error']); ?>
-                </div>
-            <?php endif; ?>
-
-            <?php
-                $goal = (int)($userData['daily_calories_needs'] ?? 2000);
-                $consumed = (int)($todayLog['calories_consumed'] ?? 0);
-                $remaining = $goal - $consumed;
-            ?>
-
-            <div class="coming-soon" style="max-width: 900px; text-align:left;">
-                <h2 style="margin-bottom: 10px;">Aujourd’hui (<?= htmlspecialchars(date('d/m/Y'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>)</h2>
-                <div style="display:flex; gap:12px; flex-wrap:wrap; margin-bottom: 12px;">
-                    <div style="flex:1; min-width:180px; background:#f8f9fa; padding:12px; border-radius:14px;">
-                        <div style="font-weight:800; color:#2e7d32; font-size: 1.4rem;"><?= $goal ?></div>
-                        <div style="color:#6c757d;">Objectif kcal</div>
-                    </div>
-                    <div style="flex:1; min-width:180px; background:#f8f9fa; padding:12px; border-radius:14px;">
-                        <div style="font-weight:800; color:#2e7d32; font-size: 1.4rem;"><?= $consumed ?></div>
-                        <div style="color:#6c757d;">Consommé</div>
-                    </div>
-                    <div style="flex:1; min-width:180px; background:#f8f9fa; padding:12px; border-radius:14px;">
-                        <div style="font-weight:800; color:#2e7d32; font-size: 1.4rem;"><?= $remaining ?></div>
-                        <div style="color:#6c757d;">Restant</div>
-                    </div>
-                </div>
-
-                <form method="POST" action="index.php?page=suivi" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;" novalidate>
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
-                    <input type="hidden" name="action" value="save_daily_log">
-                    <input type="hidden" name="day" value="<?= htmlspecialchars(date('Y-m-d'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
-
-                    <div>
-                        <label style="font-weight:700;">Poids (kg)</label>
-                        <input type="number" step="0.1" name="weight_kg" value="<?= htmlspecialchars((string)($todayLog['weight_kg'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Calories consommées</label>
-                        <input type="number" name="calories_consumed" value="<?= htmlspecialchars((string)($todayLog['calories_consumed'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Protéines (g)</label>
-                        <input type="number" step="0.1" name="protein_g" value="<?= htmlspecialchars((string)($todayLog['protein_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Glucides (g)</label>
-                        <input type="number" step="0.1" name="carbs_g" value="<?= htmlspecialchars((string)($todayLog['carbs_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div>
-                        <label style="font-weight:700;">Lipides (g)</label>
-                        <input type="number" step="0.1" name="fat_g" value="<?= htmlspecialchars((string)($todayLog['fat_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div style="grid-column:1/-1;">
-                        <label style="font-weight:700;">Notes (optionnel)</label>
-                        <input name="notes" value="<?= htmlspecialchars((string)($todayLog['notes'] ?? ''), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>" style="width:100%; padding:12px; border:2px solid #e9ecef; border-radius:12px;">
-                    </div>
-                    <div style="grid-column:1/-1;">
-                        <button type="submit" class="btn-submit" style="background:linear-gradient(135deg,#2e7d32,#4caf50); color:#fff; border:0; padding:12px 16px; border-radius:12px; font-weight:800; cursor:pointer;">Enregistrer</button>
-                    </div>
-                </form>
-            </div>
-
-            <?php if(!empty($recommendations ?? [])): ?>
-                <div class="coming-soon" style="max-width: 900px; text-align:left; margin-top:16px;">
-                    <h2 style="margin-bottom: 10px;">Conseils du jour</h2>
-                    <ul style="margin:0; padding-left:18px; color:#2c3e2f;">
-                        <?php foreach(array_slice($recommendations, 0, 3) as $rec): ?>
-                            <li style="margin-bottom:8px;"><?= htmlspecialchars((string)$rec, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></li>
-                        <?php endforeach; ?>
-                    </ul>
-                </div>
-            <?php endif; ?>
-
-            <div class="coming-soon" style="max-width: 900px; text-align:left; margin-top:16px;">
-                <h2 style="margin-bottom: 10px;">Historique (7 jours)</h2>
-                <table style="width:100%; border-collapse:collapse;">
-                    <thead>
-                        <tr style="text-align:left; color:#2e7d32;">
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Date</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Poids</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">Kcal</th>
-                            <th style="padding:10px; border-bottom:1px solid #e9ecef;">P/G/L</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if(empty($history ?? [])): ?>
-                            <tr><td colspan="4" style="padding:10px;">Aucune donnée.</td></tr>
-                        <?php else: ?>
-                            <?php foreach($history as $h): ?>
-                                <tr>
-                                    <td style="padding:10px; border-bottom:1px solid #f1f3f5;"><?= htmlspecialchars($h['day'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td style="padding:10px; border-bottom:1px solid #f1f3f5;"><?= htmlspecialchars((string)($h['weight_kg'] ?? '-'), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td style="padding:10px; border-bottom:1px solid #f1f3f5;"><?= htmlspecialchars((string)($h['calories_consumed'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                    <td style="padding:10px; border-bottom:1px solid #f1f3f5;"><?= htmlspecialchars((string)($h['protein_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> / <?= htmlspecialchars((string)($h['carbs_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?> / <?= htmlspecialchars((string)($h['fat_g'] ?? 0), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="coming-soon" style="max-width: 900px; text-align:left; margin-top:16px;">
-                <h2 style="margin-bottom: 10px;">Évolution (7 jours)</h2>
-                <canvas id="trendChart" width="860" height="220" style="width:100%; height:auto; background:#fff; border:1px solid #e9ecef; border-radius:16px;"></canvas>
-                <p style="margin-top:10px; color:#6c757d; font-size:0.95rem;">
-                    Astuce: enregistrez votre poids chaque jour pour voir une courbe plus précise.
-                </p>
-            </div>
-        <?php endif; ?>
-
-        <footer class="footer">
-            <div class="footer-content">
-                <div class="footer-logo">
-                    <span class="logo-icon">🌿</span>
-                    <span>NutriWise</span>
-                </div>
-                <p class="footer-copyright">© 2024 NutriWise - Nutrition intelligente et durable</p>
-            </div>
-        </footer>
-    </div>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        .page-header {
-            text-align: center;
-            padding: 3rem 2rem;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        
-        .page-title {
-            font-size: 2.5rem;
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f8faf8;
+            color: #1a2e1a;
+        }
+
+        /* ================= PAGE STYLES ================= */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 24px;
+        }
+
+        /* HERO */
+        .hero {
             background: linear-gradient(135deg, #2e7d32, #4caf50);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-            margin-bottom: 0.5rem;
-        }
-        
-        .coming-soon {
-            text-align: center;
-            padding: 4rem 2rem;
-            background: white;
             border-radius: 32px;
-            margin: 2rem auto;
-            max-width: 600px;
+            padding: 45px;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 35px;
+            box-shadow: 0 10px 30px rgba(46,125,50,0.2);
         }
-        
-        .coming-soon-icon {
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+        }
+
+        .score-box {
+            width: 190px;
+            height: 190px;
+            border-radius: 35px;
+            background: rgba(255,255,255,0.2);
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+
+        .score-box span {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        .score-box h2 {
             font-size: 4rem;
-            margin-bottom: 1rem;
+            font-weight: 700;
         }
-        
-        .coming-soon h2 {
+
+        /* ACTIONS */
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .action-card {
+            background: white;
+            border-radius: 28px;
+            padding: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+        }
+
+        .action-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+
+        .action-left {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .action-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .green { background: #4caf50; }
+        .red { background: #ef4444; }
+        .blue { background: #3b82f6; }
+
+        /* STATS */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 35px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 28px;
+            padding: 28px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .card-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        .card-title {
+            color: #64748b;
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+        }
+
+        .card-value {
+            font-size: 2.5rem;
+            font-weight: 700;
             color: #2e7d32;
-            margin-bottom: 0.5rem;
         }
-        
-        .coming-soon p {
-            color: #6c757d;
+
+        .progress {
+            width: 100%;
+            height: 10px;
+            background: #e2e8f0;
+            border-radius: 50px;
+            overflow: hidden;
+            margin-top: 20px;
+        }
+
+        .progress div {
+            height: 100%;
+            border-radius: 50px;
+            transition: width 0.5s ease;
+        }
+
+        /* TABLES */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 25px;
+        }
+
+        .meal-item, .activity-item {
+            padding: 15px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .meal-item:last-child, .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .delete-btn {
+            border: none;
+            background: #fee2e2;
+            color: #ef4444;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #ef4444;
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            color: #1a3a1a;
+        }
+
+        /* MODAL */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .modal-content {
+            width: 95%;
+            max-width: 500px;
+            background: white;
+            border-radius: 30px;
+            padding: 30px;
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .close {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.3s;
+        }
+
+        .close:hover {
+            color: #ef4444;
+            transform: rotate(90deg);
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #1a3a1a;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4caf50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.1);
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 50px;
+            background: #2e7d32;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .submit-btn:hover {
+            background: #1b5e20;
+            transform: translateY(-2px);
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 20px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 99999;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1100px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .actions {
+                grid-template-columns: 1fr;
+            }
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            .hero {
+                flex-direction: column;
+                gap: 30px;
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+            .score-box {
+                width: 150px;
+                height: 150px;
+            }
+            .score-box h2 {
+                font-size: 3rem;
+            }
         }
     </style>
+</head>
 
-    <?php
-        $chartPoints = [];
-        foreach (array_reverse($history ?? []) as $h) {
-            $chartPoints[] = [
-                'day' => (string)($h['day'] ?? ''),
-                'weight' => $h['weight_kg'] !== null ? (float)$h['weight_kg'] : null,
-                'cal' => (int)($h['calories_consumed'] ?? 0),
-            ];
+<body>
+
+<!-- ================= INCLUDE NAVBAR ================= -->
+<?php include_once __DIR__ . '/partials/navbar.php'; ?>
+
+<!-- ================= PAGE CONTENT ================= -->
+<div class="container">
+
+    <!-- HERO SECTION -->
+    <div class="hero">
+        <div>
+            <h1>👋 Bonjour <?= htmlspecialchars($user['prenom'] ?? $_SESSION['user_name'] ?? 'Utilisateur') ?></h1>
+            <p>Suivez votre santé aujourd'hui</p>
+        </div>
+        <div class="score-box">
+            <span>Score</span>
+            <h2 id="dailyScore"><?= $dailyScore ?? 0 ?></h2>
+            <span>/100</span>
+        </div>
+    </div>
+
+    <!-- ACTIONS CARDS -->
+    <div class="actions">
+        <div class="action-card" onclick="openModal('mealModal')">
+            <div class="action-left">
+                <div class="action-icon green">
+                    <i class="fas fa-utensils"></i>
+                </div>
+                <div>
+                    <h3>Ajouter repas</h3>
+                    <p>Ajoutez vos aliments</p>
+                </div>
+            </div>
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <div class="action-card" onclick="openModal('activityModal')">
+            <div class="action-left">
+                <div class="action-icon red">
+                    <i class="fas fa-running"></i>
+                </div>
+                <div>
+                    <h3>Ajouter activité</h3>
+                    <p>Ajoutez votre sport</p>
+                </div>
+            </div>
+            <i class="fas fa-plus"></i>
+        </div>
+
+        <div class="action-card" onclick="addWater()">
+            <div class="action-left">
+                <div class="action-icon blue">
+                    <i class="fas fa-tint"></i>
+                </div>
+                <div>
+                    <h3>Ajouter eau</h3>
+                    <p>+1 verre d'eau</p>
+                </div>
+            </div>
+            <i class="fas fa-plus"></i>
+        </div>
+    </div>
+
+    <!-- STATS CARDS -->
+    <div class="stats">
+        <div class="card">
+            <div class="card-top">
+                <div>
+                    <div class="card-title">Calories</div>
+                    <div class="card-value" id="calories">
+                        <?= $totals['calories_consumed'] ?? 0 ?>
+                    </div>
+                </div>
+                <div class="action-icon green">
+                    <i class="fas fa-fire"></i>
+                </div>
+            </div>
+            <p>Objectif <?= $user['daily_calories_needs'] ?? 2000 ?> kcal</p>
+            <div class="progress">
+                <div class="green"
+                    style="width:<?= min(100, (($totals['calories_consumed'] ?? 0) / ($user['daily_calories_needs'] ?? 2000)) * 100) ?>%">
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-top">
+                <div>
+                    <div class="card-title">Activité</div>
+                    <div class="card-value" id="burned">
+                        <?= $totals['calories_burned'] ?? 0 ?>
+                    </div>
+                </div>
+                <div class="action-icon red">
+                    <i class="fas fa-dumbbell"></i>
+                </div>
+            </div>
+            <p>Calories brûlées</p>
+        </div>
+
+        <div class="card">
+            <div class="card-top">
+                <div>
+                    <div class="card-title">Hydratation</div>
+                    <div class="card-value" id="water">
+                        <?= $totals['water'] ?? 0 ?>
+                    </div>
+                </div>
+                <div class="action-icon blue">
+                    <i class="fas fa-glass-water"></i>
+                </div>
+            </div>
+            <p><?= $user['water_goal'] ?? 8 ?> verres</p>
+        </div>
+
+        <div class="card">
+            <div class="card-top">
+                <div>
+                    <div class="card-title">Sommeil</div>
+                    <div class="card-value">
+                        <?= $totals['sleep'] ?? 0 ?>h
+                    </div>
+                </div>
+                <div class="action-icon" style="background:#9333ea;">
+                    <i class="fas fa-moon"></i>
+                </div>
+            </div>
+            <p>Objectif 8h</p>
+        </div>
+    </div>
+
+    <!-- MEALS & ACTIVITIES GRID -->
+    <div class="grid">
+        <!-- MEALS -->
+        <div class="card">
+            <h2 class="section-title">🍽️ Repas</h2>
+            <div id="mealsContainer">
+                <?php if(empty($meals)): ?>
+                    <p>Aucun repas ajouté.</p>
+                <?php else: ?>
+                    <?php foreach($meals as $meal): ?>
+                        <div class="meal-item">
+                            <div>
+                                <strong><?= htmlspecialchars($meal['food_name']) ?></strong>
+                                <p><?= $meal['calories'] ?> kcal</p>
+                            </div>
+                            <button class="delete-btn" onclick="deleteMeal(<?= $meal['id'] ?>)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- ACTIVITIES -->
+        <div class="card">
+            <h2 class="section-title">🏃 Activités</h2>
+            <div id="activitiesContainer">
+                <?php if(empty($activities)): ?>
+                    <p>Aucune activité.</p>
+                <?php else: ?>
+                    <?php foreach($activities as $activity): ?>
+                        <div class="activity-item">
+                            <div>
+                                <strong><?= htmlspecialchars($activity['activity_type']) ?></strong>
+                                <p><?= $activity['duration'] ?> min</p>
+                            </div>
+                            <button class="delete-btn" onclick="deleteActivity(<?= $activity['id'] ?>)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL REPAS -->
+<div class="modal" id="mealModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Ajouter repas</h2>
+            <button class="close" onclick="closeModal('mealModal')">&times;</button>
+        </div>
+        <form id="mealForm" novalidate>
+            <div class="form-group">
+                <label>Nom aliment</label>
+                <input type="text" name="food_name" required>
+            </div>
+            <div class="form-group">
+                <label>Calories</label>
+                <input type="number" name="calories" required>
+            </div>
+            <div class="form-group">
+                <label>Quantité</label>
+                <input type="number" name="quantity">
+            </div>
+            <div class="form-group">
+                <label>Type repas</label>
+                <select name="meal_type">
+                    <option>Petit-déjeuner</option>
+                    <option>Déjeuner</option>
+                    <option>Dîner</option>
+                    <option>Collation</option>
+                </select>
+            </div>
+            <button class="submit-btn">Ajouter</button>
+        </form>
+    </div>
+</div>
+
+<!-- MODAL ACTIVITE -->
+<div class="modal" id="activityModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Ajouter activité</h2>
+            <button class="close" onclick="closeModal('activityModal')">&times;</button>
+        </div>
+        <form id="activityForm" novalidate>
+            <div class="form-group">
+                <label>Activité</label>
+                <select name="activity_type">
+                    <option>Marche</option>
+                    <option>Course</option>
+                    <option>Vélo</option>
+                    <option>Musculation</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Durée (minutes)</label>
+                <input type="number" name="duration" required>
+            </div>
+            <div class="form-group">
+                <label>Calories brûlées</label>
+                <input type="number" name="calories_burned" required>
+            </div>
+            <button class="submit-btn">Ajouter</button>
+        </form>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+function openModal(id){
+    document.getElementById(id).style.display = 'flex';
+}
+
+function closeModal(id){
+    document.getElementById(id).style.display = 'none';
+}
+
+window.onclick = function(e){
+    document.querySelectorAll('.modal').forEach(modal=>{
+        if(e.target === modal){
+            modal.style.display = 'none';
         }
-    ?>
-    <script>
-        (function () {
-            const canvas = document.getElementById('trendChart');
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
+    });
+}
 
-            const points = <?= json_encode($chartPoints, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
-            if (!Array.isArray(points) || points.length === 0) return;
+function showToast(message){
+    const toast = document.getElementById('toast');
+    toast.innerHTML = `<i class="fas fa-check-circle"></i> ${message}`;
+    toast.style.display = 'flex';
+    setTimeout(()=>{
+        toast.style.display = 'none';
+    }, 3000);
+}
 
-            // Canvas helpers
-            const w = canvas.width, h = canvas.height;
-            const pad = 36;
-            ctx.clearRect(0, 0, w, h);
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, w, h);
+/* ADD MEAL */
+document.getElementById('mealForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const formData = new FormData(this);
+    try{
+        const response = await fetch('index.php?page=add_meal_suivi', {
+            method:'POST',
+            body:formData
+        });
+        const result = await response.json();
+        if(result.success){
+            showToast('Repas ajouté');
+            location.reload();
+        }
+    }catch(error){
+        console.log(error);
+    }
+});
 
-            // Extract series
-            const weights = points.map(p => (p.weight == null ? null : Number(p.weight))).filter(v => Number.isFinite(v));
-            const cals = points.map(p => Number(p.cal || 0));
-            const minW = weights.length ? Math.min(...weights) : 0;
-            const maxW = weights.length ? Math.max(...weights) : 0;
-            const minC = Math.min(...cals);
-            const maxC = Math.max(...cals);
+/* ADD ACTIVITY */
+document.getElementById('activityForm').addEventListener('submit', async function(e){
+    e.preventDefault();
+    const formData = new FormData(this);
+    try{
+        const response = await fetch('index.php?page=add_activity_suivi', {
+            method:'POST',
+            body:formData
+        });
+        const result = await response.json();
+        if(result.success){
+            showToast('Activité ajoutée');
+            location.reload();
+        }
+    }catch(error){
+        console.log(error);
+    }
+});
 
-            function xAt(i) {
-                if (points.length === 1) return pad;
-                return pad + (i * (w - pad * 2)) / (points.length - 1);
-            }
-            function yFor(val, min, max) {
-                if (!Number.isFinite(val)) return null;
-                const range = (max - min) || 1;
-                const t = (val - min) / range;
-                return (h - pad) - t * (h - pad * 2);
-            }
+/* ADD WATER */
+async function addWater(){
+    try{
+        const response = await fetch('index.php?page=add_water_suivi', {
+            method:'POST'
+        });
+        const result = await response.json();
+        if(result.success){
+            showToast('Eau ajoutée');
+            document.getElementById('water').innerText = result.data.totals.water;
+            document.getElementById('dailyScore').innerText = result.data.dailyScore;
+        }
+    }catch(error){
+        console.log(error);
+    }
+}
 
-            // Grid
-            ctx.strokeStyle = '#eef2f7';
-            ctx.lineWidth = 1;
-            for (let i = 0; i < 4; i++) {
-                const y = pad + (i * (h - pad * 2)) / 3;
-                ctx.beginPath();
-                ctx.moveTo(pad, y);
-                ctx.lineTo(w - pad, y);
-                ctx.stroke();
-            }
+/* DELETE MEAL */
+async function deleteMeal(id){
+    if(!confirm('Supprimer ce repas ?')) return;
+    try{
+        const response = await fetch('index.php?page=delete_meal_suivi', {
+            method:'POST',
+            body:new URLSearchParams({id:id})
+        });
+        const result = await response.json();
+        if(result.success){
+            showToast('Repas supprimé');
+            location.reload();
+        }
+    }catch(error){
+        console.log(error);
+    }
+}
 
-            // Calories line (green, scaled independently)
-            ctx.strokeStyle = '#2e7d32';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            points.forEach((p, i) => {
-                const x = xAt(i);
-                const y = yFor(Number(p.cal || 0), minC, maxC);
-                if (i === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-            ctx.stroke();
+/* DELETE ACTIVITY */
+async function deleteActivity(id){
+    if(!confirm('Supprimer cette activité ?')) return;
+    try{
+        const response = await fetch('index.php?page=delete_activity_suivi', {
+            method:'POST',
+            body:new URLSearchParams({id:id})
+        });
+        const result = await response.json();
+        if(result.success){
+            showToast('Activité supprimée');
+            location.reload();
+        }
+    }catch(error){
+        console.log(error);
+    }
+}
+</script>
 
-            // Weight dots (blue)
-            if (weights.length) {
-                ctx.fillStyle = '#1976d2';
-                points.forEach((p, i) => {
-                    if (p.weight == null) return;
-                    const x = xAt(i);
-                    const y = yFor(Number(p.weight), minW, maxW);
-                    ctx.beginPath();
-                    ctx.arc(x, y, 3.5, 0, Math.PI * 2);
-                    ctx.fill();
-                });
-            }
-
-            // X labels
-            ctx.fillStyle = '#6c757d';
-            ctx.font = '12px Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial';
-            points.forEach((p, i) => {
-                if (i === 0 || i === points.length - 1 || i === Math.floor(points.length / 2)) {
-                    const x = xAt(i);
-                    const label = String(p.day || '').slice(5); // MM-DD
-                    ctx.fillText(label, x - 16, h - 12);
-                }
-            });
-
-            // Legend
-            ctx.fillStyle = '#2c3e2f';
-            ctx.font = '13px Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial';
-            ctx.fillText('Calories', pad, 18);
-            ctx.fillStyle = '#2e7d32';
-            ctx.fillRect(pad + 70, 8, 18, 3);
-            ctx.fillStyle = '#2c3e2f';
-            ctx.fillText('Poids', pad + 110, 18);
-            ctx.fillStyle = '#1976d2';
-            ctx.beginPath();
-            ctx.arc(pad + 156, 12, 4, 0, Math.PI * 2);
-            ctx.fill();
-        })();
-    </script>
 </body>
 </html>
-<?php endif; ?>

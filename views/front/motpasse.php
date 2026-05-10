@@ -233,7 +233,7 @@
         <!-- STEP 1: Demande email -->
         <!-- ===================== -->
         <?php if($step === 'request'): ?>
-            <form action="index.php?page=motpasse" method="POST">
+            <form action="index.php?page=motpasse" method="POST" novalidate>
                 <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
                 <input type="hidden" name="action" value="request_reset">
 
@@ -254,7 +254,7 @@
         <!-- STEP 2: Vérification -->
         <!-- ===================== -->
         <?php elseif($step === 'verify' && isset($_SESSION['reset_verify'])): ?>
-            <form action="index.php?page=motpasse&step=verify" method="POST">
+            <form action="index.php?page=motpasse&step=verify" method="POST" novalidate>
                 <input type="hidden" name="_csrf" value="<?= csrf_token() ?>">
                 <input type="hidden" name="action" value="reset_password">
 

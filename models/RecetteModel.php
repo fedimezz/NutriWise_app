@@ -195,6 +195,7 @@ class RecetteModel {
             return false;
         }
     }
+    
 
     /**
      * Incrémenter le compteur de vues

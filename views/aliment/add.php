@@ -64,7 +64,7 @@
                     <?php unset($_SESSION['error']); ?>
                 <?php endif; ?>
 
-                <form action="index.php?page=admin_add_aliment" method="POST" enctype="multipart/form-data">
+                <form action="index.php?page=admin_add_aliment" method="POST" enctype="multipart/form-data" novalidate>
                     <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
 
                     <div class="form-row">

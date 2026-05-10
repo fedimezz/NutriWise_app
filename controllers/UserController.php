@@ -6,10 +6,16 @@ require_once 'models/RecetteModel.php';
 class UserController {
     private $userModel;
     private $recetteModel;
+    private $pdo;
 
     public function __construct() {
         $this->userModel = new UserModel();
         $this->recetteModel = new RecetteModel();
+        
+        // Connexion PDO pour les méthodes de suivi
+        require_once 'models/Database.php';
+        $db = Database::getInstance();
+        $this->pdo = $db->getConnection();
     }
 
     public function profile() {
@@ -180,77 +186,239 @@ class UserController {
         require_once 'views/front/recette_details.php';
     }
 
-    public function suivi() {
-        require_login();
-        $page = 'suivi';
+   public function suivi() {
+    require_login();
+    $page = 'suivi';
 
-        $userId = current_user_id();
-        $userData = $this->userModel->getUserById($userId);
+    $userId = current_user_id();
+    $userData = $this->userModel->getUserById($userId);
 
-        $today = date('Y-m-d');
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            csrf_check();
-            $action = $_POST['action'] ?? '';
-            if ($action === 'save_daily_log') {
-                $day = $_POST['day'] ?? $today;
-                $weight = ($_POST['weight_kg'] ?? '') !== '' ? (float)$_POST['weight_kg'] : null;
-                $cal = (int)($_POST['calories_consumed'] ?? 0);
-                $p = (float)($_POST['protein_g'] ?? 0);
-                $c = (float)($_POST['carbs_g'] ?? 0);
-                $f = (float)($_POST['fat_g'] ?? 0);
-                $notes = trim($_POST['notes'] ?? '');
-                $notes = $notes !== '' ? $notes : null;
-
-                if ($cal < 0) $cal = 0;
-                if ($p < 0) $p = 0;
-                if ($c < 0) $c = 0;
-                if ($f < 0) $f = 0;
-
-                if ($this->userModel->upsertDailyLog($userId, $day, $weight, $cal, $p, $c, $f, $notes)) {
-                    $_SESSION['success'] = "Suivi enregistré.";
-                } else {
-                    $_SESSION['error'] = "Erreur lors de l'enregistrement.";
-                }
+    $today = date('Y-m-d');
+    
+    // Gestion des actions POST
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        csrf_check();
+        $action = $_POST['action'] ?? '';
+        
+        switch($action) {
+            case 'add_meal':
+                $this->addMeal();
+                break;
+            case 'add_activity':
+                $this->addActivity();
+                break;
+            case 'add_water':
+                $this->addWater();
+                break;
+            case 'update_goals':
+                $this->updateGoals();
+                break;
+            case 'save_daily_log':
+                $this->saveDailyLog();
+                break;
+            default:
                 redirect("index.php?page=suivi");
-            }
         }
+    }
 
-        $todayLog = $this->userModel->getDailyLog($userId, $today);
-        $start = date('Y-m-d', strtotime('-6 days'));
-        $history = $this->userModel->getDailyLogRange($userId, $start, $today);
+    // Récupérer les données avec PDO
+    $pdo = $this->pdo;
+    
+    $todayLog = $this->userModel->getDailyLog($userId, $today);
+    $start = date('Y-m-d', strtotime('-6 days'));
+    $history = $this->userModel->getDailyLogRange($userId, $start, $today);
+    
+    // Récupérer les repas, activités et eau du jour
+    $stmt = $pdo->prepare("SELECT * FROM meals WHERE user_id = ? AND DATE(created_at) = CURDATE() ORDER BY created_at DESC");
+    $stmt->execute([$userId]);
+    $repasJour = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $pdo->prepare("SELECT * FROM activities WHERE user_id = ? AND DATE(created_at) = CURDATE() ORDER BY created_at DESC");
+    $stmt->execute([$userId]);
+    $activitesJour = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $stmt = $pdo->prepare("SELECT * FROM water_intake WHERE user_id = ? AND DATE(created_at) = CURDATE() ORDER BY created_at DESC");
+    $stmt->execute([$userId]);
+    $eauJour = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Récupérer les aliments de référence
+    $stmt = $pdo->query("SELECT name, category, calories_per_100g FROM reference_foods ORDER BY name LIMIT 50");
+    $referenceFoods = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    $objectifCalories = (int)($userData['daily_calories_needs'] ?? 2000);
+    $objectifEau = (int)($userData['water_goal'] ?? 8);
+    $caloriesConsommees = (int)($todayLog['calories_consumed'] ?? 0);
+    $caloriesBrûlees = (int)($todayLog['calories_burned'] ?? 0);
+    $verresEau = (int)($todayLog['water_glasses'] ?? 0);
+    
+    // Passer toutes les variables à la vue
+    require_once 'views/front/suivi.php';
+}
 
-        // Recommendations (simple rule-based MVP)
-        $recommendations = [];
-        $dailyTarget = (int)($userData['daily_calories_needs'] ?? 2000);
-        $goal = (string)($userData['objectif'] ?? 'Maintien');
-        if ($goal === 'Perte de poids') { $pPct = 0.30; $cPct = 0.40; $fPct = 0.30; }
-        elseif ($goal === 'Prise de muscle') { $pPct = 0.30; $cPct = 0.50; $fPct = 0.20; }
-        else { $pPct = 0.25; $cPct = 0.50; $fPct = 0.25; }
-        $pTarget = (float)round(($dailyTarget * $pPct) / 4, 1);
-        $cTarget = (float)round(($dailyTarget * $cPct) / 4, 1);
-        $fTarget = (float)round(($dailyTarget * $fPct) / 9, 1);
+    // ============================================
+    // MÉTHODES POUR LE SUIVI
+    // ============================================
 
-        $consumed = (int)($todayLog['calories_consumed'] ?? 0);
-        if ($consumed > (int)round($dailyTarget * 1.10)) {
-            $recommendations[] = "Vous êtes au-dessus de votre objectif calorique du jour. Pensez à équilibrer avec un repas léger riche en protéines et légumes.";
-        } elseif ($consumed < (int)round($dailyTarget * 0.60)) {
-            $recommendations[] = "Vous êtes encore loin de votre objectif calorique. Ajoutez une collation saine (yaourt, fruits, noix) pour éviter les fringales.";
+    /**
+     * Ajouter un repas
+     */
+    public function addMeal() {
+        $userId = current_user_id();
+        $stmt = $this->pdo->prepare("INSERT INTO meals (user_id, meal_type, food_name, quantity, calories, category, created_at) VALUES (?, ?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $userId, 
+            $_POST['meal_type'], 
+            $_POST['food_name'], 
+            (int)($_POST['quantity'] ?? 0), 
+            (int)($_POST['calories'] ?? 0), 
+            $_POST['category'] ?? null
+        ]);
+        $this->updateDailyLog($userId);
+        $_SESSION['success'] = "Repas ajouté !";
+        header('Location: index.php?page=suivi');
+        exit;
+    }
+
+    /**
+     * Ajouter une activité
+     */
+    public function addActivity() {
+        $userId = current_user_id();
+        $stmt = $this->pdo->prepare("INSERT INTO activities (user_id, activity_type, duration, calories_burned, intensity, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
+        $stmt->execute([
+            $userId, 
+            $_POST['activity_type'], 
+            (int)$_POST['duration'], 
+            (int)$_POST['calories_burned'], 
+            $_POST['intensity'] ?? 'Modérée'
+        ]);
+        $this->updateDailyLog($userId);
+        $_SESSION['success'] = "Activité ajoutée !";
+        header('Location: index.php?page=suivi');
+        exit;
+    }
+
+    /**
+     * Ajouter un verre d'eau
+     */
+    public function addWater() {
+        $userId = current_user_id();
+        $stmt = $this->pdo->prepare("INSERT INTO water_intake (user_id, glasses, created_at) VALUES (?, 1, NOW())");
+        $stmt->execute([$userId]);
+        $this->updateDailyLog($userId);
+        $_SESSION['success'] = "Verre d'eau ajouté !";
+        header('Location: index.php?page=suivi');
+        exit;
+    }
+
+    /**
+     * Mettre à jour les objectifs
+     */
+    public function updateGoals() {
+        $userId = current_user_id();
+        $stmt = $this->pdo->prepare("UPDATE users SET daily_calories_needs = ?, water_goal = ?, sleep_goal = ?, activity_goal = ?, target_weight = ?, target_date = ? WHERE id = ?");
+        $stmt->execute([
+            (int)$_POST['daily_calories_needs'], 
+            (int)$_POST['water_goal'], 
+            (float)$_POST['sleep_goal'], 
+            (int)$_POST['activity_goal'], 
+            $_POST['target_weight'] ?: null, 
+            $_POST['target_date'] ?: null, 
+            $userId
+        ]);
+        $_SESSION['success'] = "Objectifs mis à jour !";
+        header('Location: index.php?page=suivi');
+        exit;
+    }
+
+    /**
+     * Sauvegarder le log quotidien
+     */
+    public function saveDailyLog() {
+        $userId = current_user_id();
+        $today = date('Y-m-d');
+        $weight = ($_POST['weight_kg'] ?? '') !== '' ? (float)$_POST['weight_kg'] : null;
+        $cal = (int)($_POST['calories_consumed'] ?? 0);
+        $p = (float)($_POST['protein_g'] ?? 0);
+        $c = (float)($_POST['carbs_g'] ?? 0);
+        $f = (float)($_POST['fat_g'] ?? 0);
+        $notes = trim($_POST['notes'] ?? '');
+        $notes = $notes !== '' ? $notes : null;
+
+        if ($cal < 0) $cal = 0;
+        if ($p < 0) $p = 0;
+        if ($c < 0) $c = 0;
+        if ($f < 0) $f = 0;
+
+        if ($this->userModel->upsertDailyLog($userId, $today, $weight, $cal, $p, $c, $f, $notes)) {
+            $_SESSION['success'] = "Suivi enregistré.";
+        } else {
+            $_SESSION['error'] = "Erreur lors de l'enregistrement.";
         }
+        header('Location: index.php?page=suivi');
+        exit;
+    }
 
-        $pNow = (float)($todayLog['protein_g'] ?? 0);
-        $cNow = (float)($todayLog['carbs_g'] ?? 0);
-        $fNow = (float)($todayLog['fat_g'] ?? 0);
-        if ($pNow < $pTarget * 0.7) {
-            $recommendations[] = "Protéines un peu basses aujourd'hui. Ajoutez une source protéinée (œufs, poulet, légumineuses, fromage blanc).";
-        }
-        if ($fNow > $fTarget * 1.3) {
-            $recommendations[] = "Lipides un peu élevés. Favorisez des cuissons plus légères et des portions d'huiles maîtrisées.";
-        }
-        if (!empty($userData['allergies'])) {
-            $recommendations[] = "Allergies enregistrées : " . (string)$userData['allergies'] . ". Nous éviterons ces ingrédients dans les suggestions.";
-        }
+    /**
+     * Supprimer un repas
+     */
+    public function deleteMeal() {
+        $userId = current_user_id();
+        $id = (int)($_POST['id'] ?? 0);
+        $stmt = $this->pdo->prepare("DELETE FROM meals WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        $this->updateDailyLog($userId);
+        echo json_encode(['success' => true]);
+        exit;
+    }
 
-        require_once 'views/front/suivi.php';
+    /**
+     * Supprimer une activité
+     */
+    public function deleteActivity() {
+        $userId = current_user_id();
+        $id = (int)($_POST['id'] ?? 0);
+        $stmt = $this->pdo->prepare("DELETE FROM activities WHERE id = ? AND user_id = ?");
+        $stmt->execute([$id, $userId]);
+        $this->updateDailyLog($userId);
+        echo json_encode(['success' => true]);
+        exit;
+    }
+
+    /**
+     * Récupérer les repas d'une date
+     */
+    private function getMealsByDate($userId, $date) {
+        $stmt = $this->pdo->prepare("SELECT * FROM meals WHERE user_id = ? AND DATE(created_at) = ? ORDER BY created_at DESC");
+        $stmt->execute([$userId, $date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupérer les activités d'une date
+     */
+    private function getActivitiesByDate($userId, $date) {
+        $stmt = $this->pdo->prepare("SELECT * FROM activities WHERE user_id = ? AND DATE(created_at) = ? ORDER BY created_at DESC");
+        $stmt->execute([$userId, $date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Récupérer l'eau d'une date
+     */
+    private function getWaterByDate($userId, $date) {
+        $stmt = $this->pdo->prepare("SELECT * FROM water_intake WHERE user_id = ? AND DATE(created_at) = ? ORDER BY created_at DESC");
+        $stmt->execute([$userId, $date]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Mettre à jour le log quotidien
+     */
+    private function updateDailyLog($userId) {
+        $today = date('Y-m-d');
+        $stmt = $this->pdo->prepare("CALL update_daily_log(?, ?)");
+        $stmt->execute([$userId, $today]);
     }
 
     /**
