@@ -442,253 +442,398 @@
     </div>
 
     <script>
-        const alimentsData = <?php echo json_encode($aliments ?? []); ?>;
-        let currentCategory = 'all';
-        let currentSearch = '';
-        let currentSort = 'name';
-        let filteredAliments = [...alimentsData];
-        const pageSize = 6;
-        let currentPage = 1;
+    const alimentsData = <?php echo json_encode($aliments ?? []); ?>;
+    let currentCategory = 'all';
+    let currentSearch = '';
+    let currentSort = 'name';
+    const pageSize = 6;
+    let currentPage = 1;
 
-        function getDefaultImage(category) {
-            const defaultImages = {
-                'Fruits': 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&h=300&fit=crop',
-                'Légumes': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&h=300&fit=crop',
-                'Protéines': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop',
-                'Féculents': 'https://images.unsplash.com/photo-1586201375761-83865001e8ac?w=400&h=300&fit=crop',
-                'Matières grasses': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop',
-                'Laitages': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=300&fit=crop'
-            };
-            return defaultImages[category] || 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
-        }
+    function getDefaultImage(category) {
+        const defaultImages = {
+            'Fruits': 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?w=400&h=300&fit=crop',
+            'Légumes': 'https://images.unsplash.com/photo-1566385101042-1a0aa0c1268c?w=400&h=300&fit=crop',
+            'Protéines': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop',
+            'Féculents': 'https://images.unsplash.com/photo-1586201375761-83865001e8ac?w=400&h=300&fit=crop',
+            'Matières grasses': 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=400&h=300&fit=crop',
+            'Laitages': 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=400&h=300&fit=crop'
+        };
 
-        function getSpecificImage(alimentName, category) {
-            const name = alimentName.toLowerCase();
-            const imageMap = {
-                'amande': 'https://images.unsplash.com/photo-1525706616307-9301b5c3ad4f?w=400&h=300&fit=crop',
-                'avocat': 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400&h=300&fit=crop',
-                'banane': 'https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400&h=300&fit=crop',
-                'boeuf': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop',
-                'brocoli': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&h=300&fit=crop',
-                'poulet': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop',
-                'saumon': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=300&fit=crop',
-                'oeuf': 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400&h=300&fit=crop',
-                'pomme': 'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=400&h=300&fit=crop',
-                'carotte': 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&h=300&fit=crop'
-            };
-            
-            for (let [key, url] of Object.entries(imageMap)) {
-                if (name.includes(key)) return url;
-            }
-            return getDefaultImage(category);
-        }
-
-        function getEcoScoreColor(score) {
-            if(score >= 8) return '#2e7d32';
-            if(score >= 6) return '#f39c12';
-            return '#e74c3c';
-        }
-
-        function getEcoScoreBg(score) {
-            if(score >= 8) return '#e8f5e9';
-            if(score >= 6) return '#fff3e0';
-            return '#ffebee';
-        }
-
-        function sortAliments(aliments) {
-            return [...aliments].sort((a, b) => {
-                if (currentSort === 'calories') {
-                    return (Number(a.calories) || 0) - (Number(b.calories) || 0);
-                } else if (currentSort === 'eco_score') {
-                    return (Number(b.eco_score) || 0) - (Number(a.eco_score) || 0);
-                }
-                return (a.nom || '').localeCompare(b.nom || '');
-            });
-        }
-
-        function renderAliments(aliments) {
-            const container = document.getElementById('alimentsContainer');
-            
-            if(!aliments || aliments.length === 0) {
-                document.getElementById('alimentCount').textContent = '0';
-                document.getElementById('durableCount').textContent = '0';
-                document.getElementById('paginationContainer').innerHTML = '';
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-search"></i>
-                        <h3>Aucun aliment trouvé</h3>
-                        <p>Essayez une autre recherche ou catégorie</p>
-                    </div>
-                `;
-                return;
-            }
-
-            const sortedAliments = sortAliments(aliments);
-            const durableCount = sortedAliments.filter(a => Number(a.eco_score) >= 7).length;
-            
-            document.getElementById('alimentCount').textContent = sortedAliments.length;
-            document.getElementById('durableCount').textContent = durableCount;
-
-            const pages = Math.max(1, Math.ceil(sortedAliments.length / pageSize));
-            if (currentPage > pages) currentPage = pages;
-            const start = (currentPage - 1) * pageSize;
-            const pageItems = sortedAliments.slice(start, start + pageSize);
-
-            container.innerHTML = pageItems.map(aliment => {
-                const category = aliment.category_name || aliment.categorie || 'Aliment';
-                let imageUrl = '';
-                
-               if (aliment.image && aliment.image !== '') {
-
-    if (aliment.image.startsWith('http')) {
-        imageUrl = aliment.image;
-    } 
-    else {
-        imageUrl = 'views/uploads/aliments/' + aliment.image;
+        return defaultImages[category] ||
+            'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=300&fit=crop';
     }
 
-} else {
-    imageUrl = getSpecificImage(aliment.nom, category);
-}
-                
-                const ecoScore = Number(aliment.eco_score) || 0;
-                const scoreColor = getEcoScoreColor(ecoScore);
-                const scoreBg = getEcoScoreBg(ecoScore);
-                
-                return `
-                <div class="aliment-card" onclick="location.href='index.php?page=aliment_details&id=${encodeURIComponent(aliment.id)}'">
-                    <div class="aliment-image">
-                        <img src="${imageUrl}" alt="${escapeHtml(aliment.nom)}" loading="lazy" onerror="this.src='${getDefaultImage(category)}'">
-                    </div>
-                    <div class="aliment-content">
-                        <div>
-                            <div class="aliment-header">
-                                <h3 class="aliment-name">${escapeHtml(aliment.nom)}</h3>
-                                <div class="eco-score" style="background: ${scoreBg}; color: ${scoreColor};">
-                                    ${ecoScore}/10
-                                </div>
-                            </div>
-                            <div class="category-badge">${escapeHtml(category)}</div>
-                        </div>
-                        <div class="nutrition-grid">
-                            <div class="nutrition-item">
-                                <span class="nutrition-value">${escapeHtml(String(aliment.calories || 0))}</span>
-                                <span class="nutrition-label">kcal</span>
-                            </div>
-                            <div class="nutrition-item">
-                                <span class="nutrition-value">${escapeHtml(String(aliment.proteines || 0))}g</span>
-                                <span class="nutrition-label">Protéines</span>
-                            </div>
-                            <div class="nutrition-item">
-                                <span class="nutrition-value">${escapeHtml(String(aliment.glucides || 0))}g</span>
-                                <span class="nutrition-label">Glucides</span>
-                            </div>
-                            <div class="nutrition-item">
-                                <span class="nutrition-value">${escapeHtml(String(aliment.lipides || 0))}g</span>
-                                <span class="nutrition-label">Lipides</span>
-                            </div>
-                        </div>
-                        ${ecoScore >= 7 ? '<div class="eco-badge high"><i class="fas fa-leaf"></i> Aliment durable</div>' : ''}
-                    </div>
-                </div>`;
-            }).join('');
+    function getSpecificImage(alimentName, category) {
 
-            renderPagination(pages);
-        }
+        const name = alimentName.toLowerCase();
 
-        function renderPagination(pageCount) {
-            const pagination = document.getElementById('paginationContainer');
-            if (pageCount <= 1) {
-                pagination.innerHTML = '';
-                return;
+        const imageMap = {
+            'amande': 'https://images.unsplash.com/photo-1525706616307-9301b5c3ad4f?w=400&h=300&fit=crop',
+            'avocat': 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=400&h=300&fit=crop',
+            'banane': 'https://images.unsplash.com/photo-1603833665858-e61d17a86224?w=400&h=300&fit=crop',
+            'boeuf': 'https://images.unsplash.com/photo-1603048297172-c92544798d5a?w=400&h=300&fit=crop',
+            'brocoli': 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=400&h=300&fit=crop',
+            'poulet': 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=400&h=300&fit=crop',
+            'saumon': 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400&h=300&fit=crop',
+            'oeuf': 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=400&h=300&fit=crop',
+            'pomme': 'https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?w=400&h=300&fit=crop',
+            'carotte': 'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400&h=300&fit=crop'
+        };
+
+        for (let [key, url] of Object.entries(imageMap)) {
+            if (name.includes(key)) {
+                return url;
             }
-            
-            let buttons = `<button ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(${currentPage - 1})">
-                            <i class="fas fa-chevron-left"></i> Précédent
-                           </button>`;
-            
-            let startPage = Math.max(1, currentPage - 2);
-            let endPage = Math.min(pageCount, startPage + 4);
-            
-            if (startPage > 1) buttons += `<button onclick="changePage(1)">1</button>`;
-            if (startPage > 2) buttons += `<button disabled>...</button>`;
-            
-            for (let i = startPage; i <= endPage; i++) {
-                buttons += `<button class="${currentPage === i ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+        }
+
+        return getDefaultImage(category);
+    }
+
+    function getEcoScoreColor(score) {
+        if(score >= 8) return '#2e7d32';
+        if(score >= 6) return '#f39c12';
+        return '#e74c3c';
+    }
+
+    function getEcoScoreBg(score) {
+        if(score >= 8) return '#e8f5e9';
+        if(score >= 6) return '#fff3e0';
+        return '#ffebee';
+    }
+
+    function sortAliments(aliments) {
+
+        return [...aliments].sort((a, b) => {
+
+            if (currentSort === 'calories') {
+                return (Number(a.calories) || 0) -
+                       (Number(b.calories) || 0);
             }
-            
-            if (endPage < pageCount - 1) buttons += `<button disabled>...</button>`;
-            if (endPage < pageCount) buttons += `<button onclick="changePage(${pageCount})">${pageCount}</button>`;
-            
-            buttons += `<button ${currentPage === pageCount ? 'disabled' : ''} onclick="changePage(${currentPage + 1})">
-                            Suivant <i class="fas fa-chevron-right"></i>
-                        </button>`;
-            
-            pagination.innerHTML = buttons;
+
+            else if (currentSort === 'eco_score') {
+                return (Number(b.eco_score) || 0) -
+                       (Number(a.eco_score) || 0);
+            }
+
+            return (a.nom || '').localeCompare(b.nom || '');
+        });
+    }
+
+    function escapeHtml(text) {
+
+        if(!text) return '';
+
+        const div = document.createElement('div');
+        div.textContent = text;
+
+        return div.innerHTML;
+    }
+
+    function renderAliments(aliments) {
+
+        const container = document.getElementById('alimentsContainer');
+
+        if(!aliments || aliments.length === 0) {
+
+            document.getElementById('alimentCount').textContent = '0';
+            document.getElementById('durableCount').textContent = '0';
+
+            document.getElementById('paginationContainer').innerHTML = '';
+
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-search"></i>
+                    <h3>Aucun aliment trouvé</h3>
+                    <p>Essayez une autre recherche ou catégorie</p>
+                </div>
+            `;
+
+            return;
         }
 
-        function changePage(page) {
-            currentPage = page;
-            filterAliments();
+        const sortedAliments = sortAliments(aliments);
+
+        const durableCount =
+            sortedAliments.filter(a => Number(a.eco_score) >= 7).length;
+
+        document.getElementById('alimentCount').textContent =
+            sortedAliments.length;
+
+        document.getElementById('durableCount').textContent =
+            durableCount;
+
+        const pages =
+            Math.max(1, Math.ceil(sortedAliments.length / pageSize));
+
+        if (currentPage > pages) {
+            currentPage = pages;
         }
 
-        function escapeHtml(text) {
-            if(!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        const start = (currentPage - 1) * pageSize;
+
+        const pageItems =
+            sortedAliments.slice(start, start + pageSize);
+
+        container.innerHTML = pageItems.map(aliment => {
+
+            const category =
+                aliment.category_name ||
+                aliment.categorie ||
+                'Aliment';
+
+            let imageUrl = '';
+
+            if (aliment.image && aliment.image !== '') {
+
+                if (aliment.image.startsWith('http')) {
+                    imageUrl = aliment.image;
+                } else {
+                    imageUrl = 'views/uploads/aliments/' + aliment.image;
+                }
+
+            } else {
+                imageUrl = getSpecificImage(aliment.nom, category);
+            }
+
+            const ecoScore = Number(aliment.eco_score) || 0;
+
+            const scoreColor = getEcoScoreColor(ecoScore);
+
+            const scoreBg = getEcoScoreBg(ecoScore);
+
+            return `
+            <div class="aliment-card"
+                 onclick="location.href='index.php?page=aliment_details&id=${encodeURIComponent(aliment.id)}'">
+
+                <div class="aliment-image">
+
+                    <img
+                        src="${imageUrl}"
+                        alt="${escapeHtml(aliment.nom)}"
+                        loading="lazy"
+                        onerror="this.src='${getDefaultImage(category)}'">
+
+                </div>
+
+                <div class="aliment-content">
+
+                    <div>
+
+                        <div class="aliment-header">
+
+                            <h3 class="aliment-name">
+                                ${escapeHtml(aliment.nom)}
+                            </h3>
+
+                            <div class="eco-score"
+                                 style="background:${scoreBg}; color:${scoreColor};">
+
+                                ${ecoScore}/10
+
+                            </div>
+
+                        </div>
+
+                        <div class="category-badge">
+                            ${escapeHtml(category)}
+                        </div>
+
+                    </div>
+
+                    <div class="nutrition-grid">
+
+                        <div class="nutrition-item">
+                            <span class="nutrition-value">
+                                ${escapeHtml(String(aliment.calories || 0))}
+                            </span>
+                            <span class="nutrition-label">kcal</span>
+                        </div>
+
+                        <div class="nutrition-item">
+                            <span class="nutrition-value">
+                                ${escapeHtml(String(aliment.proteines || 0))}g
+                            </span>
+                            <span class="nutrition-label">Protéines</span>
+                        </div>
+
+                        <div class="nutrition-item">
+                            <span class="nutrition-value">
+                                ${escapeHtml(String(aliment.glucides || 0))}g
+                            </span>
+                            <span class="nutrition-label">Glucides</span>
+                        </div>
+
+                        <div class="nutrition-item">
+                            <span class="nutrition-value">
+                                ${escapeHtml(String(aliment.lipides || 0))}g
+                            </span>
+                            <span class="nutrition-label">Lipides</span>
+                        </div>
+
+                    </div>
+
+                    ${ecoScore >= 7
+                        ? '<div class="eco-badge high"><i class="fas fa-leaf"></i> Aliment durable</div>'
+                        : ''}
+
+                </div>
+
+            </div>
+            `;
+
+        }).join('');
+
+        renderPagination(pages);
+    }
+
+    function renderPagination(pageCount) {
+
+        const pagination =
+            document.getElementById('paginationContainer');
+
+        if (pageCount <= 1) {
+            pagination.innerHTML = '';
+            return;
         }
 
-        function filterAliments() {
+        let buttons = `
+            <button
+                ${currentPage === 1 ? 'disabled' : ''}
+                onclick="changePage(${currentPage - 1})">
+
+                <i class="fas fa-chevron-left"></i> Précédent
+
+            </button>
+        `;
+
+        for (let i = 1; i <= pageCount; i++) {
+
+            buttons += `
+                <button
+                    class="${currentPage === i ? 'active' : ''}"
+                    onclick="changePage(${i})">
+
+                    ${i}
+
+                </button>
+            `;
+        }
+
+        buttons += `
+            <button
+                ${currentPage === pageCount ? 'disabled' : ''}
+                onclick="changePage(${currentPage + 1})">
+
+                Suivant <i class="fas fa-chevron-right"></i>
+
+            </button>
+        `;
+
+        pagination.innerHTML = buttons;
+    }
+
+    function filterAliments(resetPage = false) {
+
+        if (resetPage) {
             currentPage = 1;
-            let filtered = [...alimentsData];
-
-            if(currentSearch) {
-                filtered = filtered.filter(a => a.nom && a.nom.toLowerCase().includes(currentSearch.toLowerCase()));
-            }
-
-            if(currentCategory === 'durable') {
-                filtered = filtered.filter(a => Number(a.eco_score) >= 7);
-            } else if(currentCategory !== 'all') {
-                filtered = filtered.filter(a => Number(a.category_id) === Number(currentCategory));
-            }
-
-            renderAliments(filtered);
         }
 
-        // Événements
-        const searchInput = document.getElementById('searchInput');
-        const searchBtn = document.getElementById('searchBtn');
-        
-        searchBtn.addEventListener('click', () => {
-            currentSearch = searchInput.value;
-            filterAliments();
-        });
-        
-        searchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                currentSearch = searchInput.value;
-                filterAliments();
-            }
-        });
+        let filtered = [...alimentsData];
 
-        document.getElementById('sortSelect').addEventListener('change', (e) => {
-            currentSort = e.target.value;
-            filterAliments();
-        });
+        if(currentSearch) {
 
-        document.querySelectorAll('.filter-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                currentCategory = btn.dataset.category;
-                filterAliments();
-            });
-        });
-
-        if(alimentsData.length > 0) {
-            renderAliments(alimentsData);
+            filtered = filtered.filter(a =>
+                a.nom &&
+                a.nom.toLowerCase().includes(currentSearch.toLowerCase())
+            );
         }
-    </script>
+
+        if(currentCategory === 'durable') {
+
+            filtered = filtered.filter(a =>
+                Number(a.eco_score) >= 7
+            );
+
+        } else if(currentCategory !== 'all') {
+
+            filtered = filtered.filter(a =>
+                Number(a.category_id) === Number(currentCategory)
+            );
+        }
+
+        renderAliments(filtered);
+    }
+
+    function changePage(page) {
+
+        currentPage = page;
+
+        filterAliments(false);
+
+        window.scrollTo({
+            top: document.getElementById('alimentsContainer').offsetTop - 100,
+            behavior: 'smooth'
+        });
+    }
+
+    // Search button
+
+    document.getElementById('searchBtn')
+        .addEventListener('click', () => {
+
+        currentSearch =
+            document.getElementById('searchInput').value;
+
+        filterAliments(true);
+    });
+
+    // Enter search
+
+    document.getElementById('searchInput')
+        .addEventListener('keypress', (e) => {
+
+        if (e.key === 'Enter') {
+
+            currentSearch =
+                document.getElementById('searchInput').value;
+
+            filterAliments(true);
+        }
+    });
+
+    // Sort
+
+    document.getElementById('sortSelect')
+        .addEventListener('change', (e) => {
+
+        currentSort = e.target.value;
+
+        filterAliments(true);
+    });
+
+    // Filters
+
+    document.querySelectorAll('.filter-btn')
+        .forEach(btn => {
+
+        btn.addEventListener('click', () => {
+
+            document.querySelectorAll('.filter-btn')
+                .forEach(b => b.classList.remove('active'));
+
+            btn.classList.add('active');
+
+            currentCategory = btn.dataset.category;
+
+            filterAliments(true);
+        });
+    });
+
+    // Initial render
+
+    if(alimentsData.length > 0) {
+        renderAliments(alimentsData);
+    }
+</script>
 </body>
 </html>
