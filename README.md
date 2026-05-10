@@ -265,6 +265,190 @@ fetch(`index.php?page=search_aliments&term=${encodeURIComponent(searchTerm)}`)
 - Respecter la structure MVC existante
 
 ---
+# 🥗 NutriWise App
+
+NutriWise est une plateforme web intelligente de nutrition et de gestion alimentaire développée en PHP/MySQL.
+
+L’application permet aux utilisateurs de :
+- suivre leur alimentation
+- gérer des recettes
+- consulter les informations nutritionnelles
+- suivre les activités physiques
+- gérer des plans nutritionnels
+
+---
+
+# 🚀 Fonctionnalités principales
+
+## 👤 Authentification
+- Inscription / Connexion
+- Vérification utilisateur
+- Gestion des rôles :
+  - Owner
+  - Admin
+  - User
+  - Nutritionist
+
+---
+
+## 🥗 Gestion des aliments
+- Ajouter / modifier / supprimer des aliments
+- Informations nutritionnelles :
+  - Calories
+  - Protéines
+  - Glucides
+  - Lipides
+  - Fibres
+- Eco score
+- Images des aliments
+
+---
+
+## 🍽️ Gestion des recettes
+- Création de recettes
+- Étapes de préparation
+- Gestion des ingrédients
+- Favoris utilisateurs
+- Catégories de recettes
+- Images et vidéos
+
+---
+
+## 📊 Suivi nutritionnel
+- Calories consommées
+- Calories brûlées
+- Suivi journalier
+- Eau consommée
+- Activités physiques
+- Objectifs utilisateur
+
+---
+
+## 🏃 Activités physiques
+- Ajout d'activités
+- Calories brûlées
+- Intensité
+- Durée des exercices
+
+---
+
+# 🛠️ Technologies utilisées
+
+- PHP 8
+- MySQL / MariaDB
+- HTML5
+- CSS3
+- JavaScript
+- XAMPP
+- Git & GitHub
+
+---
+
+# 📂 Base de données
+
+Nom de la base :
+
+```sql
+nutriwise_db
+```
+
+Tables principales :
+
+- users
+- aliments
+- recettes
+- recette_ingredients
+- recette_etapes
+- meals
+- daily_logs
+- activities
+- water_intake
+- nutrition_plans
+- categories
+- roles
+
+---
+
+# ⚙️ Installation
+
+## 1️⃣ Cloner le projet
+
+```bash
+git clone https://github.com/fedimezz/NutriWise_app.git
+```
+
+---
+
+## 2️⃣ Importer la base de données
+
+Importer le fichier SQL :
+
+```bash
+nutriwise_db.sql
+```
+
+dans phpMyAdmin.
+
+---
+
+## 3️⃣ Configurer le projet
+
+Mettre le projet dans :
+
+```bash
+xampp/htdocs/
+```
+
+Puis démarrer :
+- Apache
+- MySQL
+
+---
+
+## 4️⃣ Accéder au projet
+
+```bash
+http://localhost/NutriWise_app
+```
+
+---
+
+# 👥 Collaboration GitHub
+
+Workflow utilisé :
+
+```bash
+git pull origin main
+git checkout -b feature-branch
+git add .
+git commit -m "feature update"
+git push origin feature-branch
+```
+
+Puis créer une Pull Request sur GitHub.
+
+---
+
+# 📸 Fonctionnalités avancées
+
+- Triggers MySQL automatiques
+- Procédures stockées
+- Logs d’activités
+- Gestion des favoris
+- Dashboard nutritionnel
+- Calcul automatique des statistiques
+
+---
+
+# 🧠 Auteurs
+
+Projet réalisé par étudiants ESPRIT dans le cadre d’un projet développement web.
+
+---
+
+# 📜 Licence
+
+Projet académique / éducatif.
 
 
 
