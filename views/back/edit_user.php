@@ -12,12 +12,10 @@
         <aside class="sidebar">
             <div class="logo">🌿 NutriWise</div>
             <nav>
-                <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Dashboard</a>
-                <a href="index.php?page=admin_users" class="<?= ($page=='admin_users' || $page=='admin_add_user' || $page=='admin_edit_user') ? 'active' : '' ?>">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments' || $page=='admin_add_aliment' || $page=='admin_edit_aliment') ? 'active' : '' ?>">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-                <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
+                <a href="index.php?page=admin_dashboard">📊 Dashboard</a>
+                <a href="index.php?page=admin_users" class="active">👥 Utilisateurs</a>
             </nav>
+            <a href="index.php?page=home" class="back-to-site">← Retour au site</a>
             <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
         </aside>
 
@@ -27,11 +25,10 @@
             </header>
 
             <div class="form-container">
-                <?php if(isset($_SESSION['success'])): ?><p style="color:green; font-weight:bold; margin-bottom:15px;"><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['success']); ?></p><?php endif; ?>
-                <?php if(isset($_SESSION['error'])): ?><p style="color:red; margin-bottom:15px;"><?= htmlspecialchars($_SESSION['error'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['error']); ?></p><?php endif; ?>
+                <?php if(isset($success)): ?><p style="color:green; font-weight:bold; margin-bottom:15px;"><?= $success ?></p><?php endif; ?>
+                <?php if(isset($error)): ?><p style="color:red; margin-bottom:15px;"><?= $error ?></p><?php endif; ?>
 
-                <form action="index.php?page=admin_edit_user&id=<?= $userToEdit['id'] ?>" method="POST"  novalidate>
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+                <form action="index.php?page=admin_edit_user&id=<?= $userToEdit['id'] ?>" method="POST">
                     <div class="form-row">
                         <div class="form-group"><label>Prénom</label><input type="text" name="prenom" value="<?= htmlspecialchars($userToEdit['prenom']) ?>"></div>
                         <div class="form-group"><label>Nom</label><input type="text" name="nom" value="<?= htmlspecialchars($userToEdit['nom']) ?>"></div>
@@ -44,19 +41,15 @@
                         <div class="form-group">
                             <label>Statut</label>
                             <select name="statut">
-                                <option value="actif" <?= strtolower($userToEdit['statut'] ?? '') == 'actif' ? 'selected' : '' ?>>Actif</option>
-                                <option value="inactif" <?= strtolower($userToEdit['statut'] ?? '') == 'inactif' ? 'selected' : '' ?>>Inactif</option>
+                                <option value="Actif" <?= $userToEdit['statut'] == 'Actif' ? 'selected' : '' ?>>Actif</option>
+                                <option value="Inactif" <?= $userToEdit['statut'] == 'Inactif' ? 'selected' : '' ?>>Inactif</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Rôle</label>
                             <select name="role">
                                 <option value="user" <?= $userToEdit['role'] == 'user' ? 'selected' : '' ?>>Utilisateur</option>
-                                <option value="nutritionist" <?= $userToEdit['role'] == 'nutritionist' ? 'selected' : '' ?>>Nutritionniste</option>
-                                <?php if(($_SESSION['user_role'] ?? '') === 'owner'): ?>
-                                    <option value="admin" <?= $userToEdit['role'] == 'admin' ? 'selected' : '' ?>>Administrateur</option>
-                                    <option value="owner" <?= $userToEdit['role'] == 'owner' ? 'selected' : '' ?>>Owner</option>
-                                <?php endif; ?>
+                                <option value="admin" <?= $userToEdit['role'] == 'admin' ? 'selected' : '' ?>>Administrateur</option>
                             </select>
                         </div>
                     </div>

@@ -13,12 +13,13 @@
         <aside class="sidebar">
             <div class="logo">🌿 NutriWise</div>
             <nav>
-                <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Tableau de bord</a>
-                <a href="index.php?page=admin_users" class="<?= ($page=='admin_users') ? 'active' : '' ?>">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments') ? 'active' : '' ?>">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-                <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
+                <a href="index.php?page=admin_dashboard">📊 Tableau de bord</a>
+                <a href="index.php?page=admin_users">👥 Utilisateurs</a>
+                <a href="index.php?page=admin_aliments" class="active">🥗 Aliments</a>
+                <a href="#">📖 Recettes</a>
+                <a href="#">📅 Plans alimentaires</a>
             </nav>
+            <a href="index.php?page=home" class="back-to-site">← Retour au site</a>
             <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
         </aside>
 

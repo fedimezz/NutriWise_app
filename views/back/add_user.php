@@ -12,12 +12,10 @@
         <aside class="sidebar">
             <div class="logo">🌿 NutriWise</div>
             <nav>
-                <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Dashboard</a>
-                <a href="index.php?page=admin_users" class="<?= ($page=='admin_users' || $page=='admin_add_user' || $page=='admin_edit_user') ? 'active' : '' ?>">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments' || $page=='admin_add_aliment' || $page=='admin_edit_aliment') ? 'active' : '' ?>">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-                <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
+                <a href="index.php?page=admin_dashboard">📊 Dashboard</a>
+                <a href="index.php?page=admin_users" class="active">👥 Utilisateurs</a>
             </nav>
+            <a href="index.php?page=home" class="back-to-site">← Retour au site</a>
             <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
         </aside>
 
@@ -27,36 +25,25 @@
             </header>
 
             <div class="form-container">
-                <?php if(isset($_SESSION['error'])): ?><p style="color:red; margin-bottom:15px;"><?= htmlspecialchars($_SESSION['error'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['error']); ?></p><?php endif; ?>
+                <?php if(isset($error)): ?><p style="color:red; margin-bottom:15px;"><?= $error ?></p><?php endif; ?>
 
-                <form action="index.php?page=admin_add_user" method="POST"  novalidate>
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+                <form action="index.php?page=admin_add_user" method="POST">
                     <div class="form-row">
                         <div class="form-group"><label>Prénom *</label><input type="text" name="prenom" required></div>
                         <div class="form-group"><label>Nom *</label><input type="text" name="nom" required></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Email (optionnel)</label>
-                            <input type="email" name="email" placeholder="Laisser vide pour générer automatiquement">
-                        </div>
+                        <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
                         <div class="form-group"><label>Téléphone</label><input type="tel" name="telephone"></div>
                     </div>
                     <div class="form-row">
-                        <div class="form-group">
-                            <label>Mot de passe (optionnel)</label>
-                            <input type="text" name="password" placeholder="Laisser vide pour générer un mot de passe (8 caractères)">
-                        </div>
+                        <div class="form-group"><label>Mot de passe *</label><input type="password" name="password" required></div>
                     </div>
                     <div class="form-row">
                         <div class="form-group"><label>Rôle</label>
                             <select name="role">
                                 <option value="user">Utilisateur (User)</option>
-                                <option value="nutritionist">Nutritionniste</option>
-                                <?php if(($_SESSION['user_role'] ?? '') === 'owner'): ?>
-                                    <option value="admin">Administrateur (Admin)</option>
-                                    <option value="owner">Owner (Full access)</option>
-                                <?php endif; ?>
+                                <option value="admin">Administrateur (Admin)</option>
                             </select>
                         </div>
                     </div>

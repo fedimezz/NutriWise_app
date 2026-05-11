@@ -6,8 +6,6 @@
     <title>Inscription - NutriWise</title>
     <link rel="stylesheet" href="views/assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
-    <script src="views/assets/js/auth.js"></script>
-
     <style>
         .auth-container {
             min-height: 80vh;
@@ -95,23 +93,6 @@
             border-radius: 12px;
             margin-bottom: 1rem;
         }
-        .google-btn {
-        display: inline-block;
-        width: 100%;
-        padding: 0.9rem;
-        border-radius: 16px;
-        background: white;
-        border: 2px solid #e9ecef;
-        font-weight: 600;
-        color: #444;
-        text-decoration: none;
-        transition: all 0.3s;
-}
-
-    .google-btn:hover {
-    border-color: #4caf50;
-    box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-}
         @media (max-width: 768px) {
             .form-row {
                 grid-template-columns: 1fr;
@@ -132,43 +113,31 @@
                 <h1 class="auth-title">Inscription</h1>
                 <p class="auth-subtitle">Créez votre compte gratuitement</p>
 
-                <?php if(isset($_SESSION['success'])): ?>
-                    <div class="success-message"><?= htmlspecialchars($_SESSION['success'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['success']); ?></div>
+                <?php if(isset($error)): ?>
+                    <div class="error-message"><?php echo $error; ?></div>
                 <?php endif; ?>
 
-                <?php if(isset($_SESSION['error'])): ?>
-                    <div class="error-message"><?= htmlspecialchars($_SESSION['error'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); unset($_SESSION['error']); ?></div>
-                <?php endif; ?>
-    
-
-                <form method="POST" action="index.php?page=register" novalidate>
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+                <form method="POST">
                     <div class="form-row">
                         <div class="form-group">
                             <label>Prénom</label>
-                            <input type="text" name="prenom"  placeholder="Jean">
+                            <input type="text" name="prenom" required placeholder="Jean">
                         </div>
                         <div class="form-group">
                             <label>Nom</label>
-                            <input type="text" name="nom"  placeholder="Dupont">
+                            <input type="text" name="nom" required placeholder="Dupont">
                         </div>
                     </div>
                     <div class="form-group">
                         <label>Email</label>
-                        <input type="email" name="email"  placeholder="jean.dupont@email.com">
+                        <input type="email" name="email" required placeholder="jean.dupont@email.com">
                     </div>
                     <div class="form-group">
                         <label>Mot de passe</label>
-                        <input type="password" name="password"  placeholder="••••••••">
+                        <input type="password" name="password" required placeholder="••••••••">
                     </div>
                     <button type="submit" class="btn-submit">Créer mon compte</button>
                 </form>
-                <div style="margin-bottom: 1.5rem; text-align:center;">
-    <a href="index.php?page=google_signup" class="google-btn">
-        <img src="https://developers.google.com/identity/images/g-logo.png" width="20" style="vertical-align:middle; margin-right:10px;">
-        S'inscrire avec Google
-    </a>
-</div>
 
                 <div class="auth-footer">
                     Déjà un compte ? <a href="index.php?page=login">Connectez-vous</a>

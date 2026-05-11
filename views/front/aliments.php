@@ -1,4 +1,10 @@
-<?php // Access control is handled in controller/router (PHP), not in the view. ?>
+<?php
+// Vérifier si l'utilisateur est connecté
+if(!isset($_SESSION['user_id'])) {
+    header("Location: index.php?page=login&error=Vous devez être connecté pour accéder aux aliments");
+    exit();
+}
+?>
 
 <!DOCTYPE html>
 <html lang="fr">
@@ -234,7 +240,7 @@
 
         function renderAliments(aliments) {
             const container = document.getElementById('alimentsContainer');
-
+            
             if(!aliments || aliments.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
@@ -293,17 +299,17 @@
 
         function filterAliments() {
             let filtered = [...alimentsData];
-    
+            
             if(currentSearch) {
                 filtered = filtered.filter(a => a.nom.toLowerCase().includes(currentSearch.toLowerCase()));
             }
-    
+            
             if(currentCategory === 'durable') {
                 filtered = filtered.filter(a => a.eco_score >= 7);
             } else if(currentCategory !== 'all') {
                 filtered = filtered.filter(a => a.category_id == currentCategory);
             }
-
+            
             renderAliments(filtered);
         }
 

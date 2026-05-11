@@ -13,12 +13,11 @@
         <aside class="sidebar">
             <div class="logo">🌿 NutriWise</div>
             <nav>
-                <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Tableau de bord</a>
-                <a href="index.php?page=admin_users" class="<?= ($page=='admin_users' || $page=='admin_add_user' || $page=='admin_edit_user') ? 'active' : '' ?>">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments' || $page=='admin_add_aliment' || $page=='admin_edit_aliment') ? 'active' : '' ?>">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-                <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
+                <a href="index.php?page=admin_dashboard">📊 Tableau de bord</a>
+                <a href="index.php?page=admin_users">👥 Utilisateurs</a>
+                <a href="index.php?page=admin_aliments" class="active">🥗 Aliments</a>
             </nav>
+            <a href="index.php?page=home" class="back-to-site">← Retour au site</a>
             <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
         </aside>
 
@@ -33,7 +32,6 @@
                 <?php endif; ?>
 
                 <form action="index.php?page=admin_add_aliment" method="POST">
-                    <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
 
                     <div class="form-row">
                         <div class="form-group">
