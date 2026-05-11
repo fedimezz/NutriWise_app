@@ -1,0 +1,160 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: #F5F9F2;
+}
+
+:root {
+    --vert-profond: #1B4D1B;
+    --vert-moyen: #2E7D32;
+    --vert-principal: #4CAF50;
+    --vert-clair: #81C784;
+    --vert-pale: #C8E6C9;
+}
+
+.sidebar {
+    width: 260px;
+    background: var(--vert-profond);
+    color: white;
+    position: fixed;
+    height: 100vh;
+    padding: 2rem 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    margin-bottom: 2rem;
+}
+
+.sidebar nav a {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    color: rgba(255,255,255,0.8);
+    text-decoration: none;
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.sidebar nav a:hover, .sidebar nav a.active {
+    background: var(--vert-moyen);
+    color: white;
+}
+
+.logout {
+    margin-top: auto;
+    padding: 0.875rem 1rem;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.main-content {
+    margin-left: 260px;
+    padding: 2rem;
+}
+
+.main-content header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.main-content h1 {
+    color: var(--vert-profond);
+}
+
+.btn-add {
+    background: var(--vert-principal);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.search-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid var(--vert-pale);
+    border-radius: 8px;
+}
+
+.filter-select {
+    padding: 0.75rem;
+    border: 1px solid var(--vert-pale);
+    border-radius: 8px;
+    background: white;
+}
+
+.users-table-container {
+    background: white;
+    border-radius: 12px;
+    overflow-x: auto;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.users-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.users-table th, .users-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--vert-pale);
+}
+
+.users-table th {
+    background: var(--vert-pale);
+    color: var(--vert-profond);
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+}
+
+.badge.active {
+    background: var(--vert-pale);
+    color: var(--vert-profond);
+}
+
+.badge.inactive {
+    background: #FFEBEE;
+    color: #C62828;
+}
+
+.btn-edit, .btn-delete {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.25rem;
+}
+
+.btn-edit:hover { opacity: 0.7; }
+.btn-delete:hover { opacity: 0.7; }

@@ -1,6 +1,20 @@
 <?php
-// This legacy view should not handle POST/business logic.
-// Use controllers/models for validation and persistence.
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    require_once 'models/AlimentModel.php';
+    $model = new AlimentModel();
+
+    $model->addAliment(
+        $_POST['nom'],
+        $_POST['categorie'],
+        $_POST['calories'],
+        $_POST['proteines'],
+        $_POST['glucides'],
+        $_POST['lipides'],
+        isset($_POST['durable']) ? 1 : 0
+    );
+
+    header("Location: index.php?page=aliments");
+}
 ?>
 
 <!DOCTYPE html>
@@ -8,15 +22,14 @@
 <head>
     <meta charset="UTF-8">
     <title>Ajouter Aliment</title>
-    <link rel="stylesheet" href="views/assets/css/style.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
 
 <div class="container">
     <h2>Ajouter un aliment</h2>
 
-    <form method="POST" action="index.php?page=admin_add_aliment" novalidate>
-        <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
+    <form method="POST">
 
         <input type="text" name="nom" placeholder="Nom" required><br><br>
         <input type="text" name="categorie" placeholder="Catégorie" required><br><br>

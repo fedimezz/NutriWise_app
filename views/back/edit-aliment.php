@@ -6,7 +6,13 @@
     <title>Modifier aliment - NutriWise </title>
 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="views/assets/css/edit_user.css">
+    <link rel="stylesheet" href="./assets/css/edit_user.css">
+    <style>
+        .sidebar .logo { font-size: 1.2rem; font-weight: 700; }
+        .sidebar nav a { display: block; margin-bottom: 0.75rem; padding: 0.8rem 1rem; border-radius: 10px; color: #fff; text-decoration: none; }
+        .sidebar nav a.active { background: #1b5e20; }
+        .sidebar { background: #2e7d32; color: #fff; }
+    </style>
 </head>
 <body>
 
@@ -14,13 +20,13 @@
 
     <!-- Sidebar -->
     <aside class="sidebar">
-        <div class="logo">🌿 NutriWise</div>
+        <div class="logo">NutriWise Admin</div>
         <nav>
-            <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Tableau de bord</a>
-            <a href="index.php?page=admin_users" class="<?= ($page=='admin_users' || $page=='admin_add_user' || $page=='admin_edit_user') ? 'active' : '' ?>">👥 Utilisateurs</a>
-            <a href="index.php?page=admin_aliments" class="<?= ($page=='admin_aliments' || $page=='admin_add_aliment' || $page=='admin_edit_aliment') ? 'active' : '' ?>">🥗 Aliments</a>
-            <a href="index.php?page=admin_recettes" class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">📖 Recettes</a>
-            <a href="index.php?page=admin_plans" class="<?= ($page=='admin_plans') ? 'active' : '' ?>">📅 Plans</a>
+            <a href="index.php?page=admin_dashboard" class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">📊 Dashboard</a>
+            <a href="index.php?page=admin_users" class="<?= (strpos($page, 'admin_user') !== false || strpos($page, 'user') !== false && $page != 'profile') ? 'active' : '' ?>">👥 Utilisateurs</a>
+            <a href="index.php?page=admin_suivis" class="<?= (strpos($page, 'suivi') !== false) ? 'active' : '' ?>">📈 Suivis</a>
+            <a href="index.php?page=admin_consultations" class="<?= (strpos($page, 'consultation') !== false) ? 'active' : '' ?>">🩺 Consultations</a>
+            <a href="index.php?page=admin_aliments" class="<?= (strpos($page, 'aliment') !== false) ? 'active' : '' ?>">🥗 Aliments</a>
         </nav>
         <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
     </aside>
@@ -46,7 +52,6 @@
             <?php endif; ?>
 
             <form action="index.php?page=admin_edit_aliment&id=<?= $aliment['id'] ?>" method="POST">
-                <input type="hidden" name="_csrf" value="<?= htmlspecialchars(csrf_token(), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>">
 
                 <!-- NOM + CATEGORIE -->
                 <div class="form-row">
