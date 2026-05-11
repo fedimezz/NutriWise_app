@@ -1,23 +1,22 @@
 <?php
-// index.php
 session_start();
 
-// Inclusion des contrôleurs
 require_once 'controllers/AuthController.php';
 require_once 'controllers/UserController.php';
 require_once 'controllers/AdminController.php';
 require_once 'controllers/AlimentController.php';
 require_once 'controllers/MenuController.php';
 require_once 'controllers/PlanningController.php';
+require_once 'controllers/ConsultationController.php';
+require_once 'controllers/HistoriqueActivitesController.php';
+require_once 'models/MailService.php';
+require_once 'models/HistoriqueActivitesModel.php';
 
-// On récupère la page demandée, sinon 'home'
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
 switch ($page) {
-    // --- FRONTEND ---
     case 'home':
-        // On inclut la vue de la page d'accueil
-        require_once 'views/front/index.php'; 
+        require_once 'views/front/index.php';
         break;
 
     case 'login':
@@ -65,7 +64,55 @@ switch ($page) {
         $menuController->details();
         break;
 
-    // --- BACKEND (ADMIN) ---
+    case 'suivi':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->index();
+        break;
+
+    case 'add_suivi':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->add();
+        break;
+
+    case 'consultations':
+        $consultationController = new ConsultationController();
+        $consultationController->index();
+        break;
+
+    case 'add_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->add();
+        break;
+
+    case 'delete_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->delete();
+        break;
+
+    case 'edit_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->edit();
+        break;
+
+    case 'historique_activites':
+        $historiqueController = new HistoriqueActivitesController();
+        $historiqueController->index();
+        break;
+
+    case 'get_activities_by_type':
+        $historiqueController = new HistoriqueActivitesController();
+        $historiqueController->getByType();
+        break;
+
+    case 'get_activities_by_date':
+        $historiqueController = new HistoriqueActivitesController();
+        $historiqueController->getByDateRange();
+        break;
+
+
+
     case 'admin_dashboard':
         $admin = new AdminController();
         $admin->dashboard();
@@ -121,31 +168,53 @@ switch ($page) {
         $planningController->deletePlanning();
         break;
 
-    // Les menus sont gérés via les plannings, pas séparément
-    /*
-    case 'admin_menus':
-        $menuController = new MenuController();
-        $menuController->listMenus();
+    case 'admin_consultations':
+        $consultationController = new ConsultationController();
+        $consultationController->adminList();
         break;
 
-    case 'admin_add_menu':
-        $menuController = new MenuController();
-        $menuController->addMenu();
+    case 'admin_suivis':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->adminList();
         break;
 
-    case 'admin_edit_menu':
-        $menuController = new MenuController();
-        $menuController->editMenu();
+    case 'admin_add_suivi':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->adminAdd();
         break;
 
-    case 'admin_delete_menu':
-        $menuController = new MenuController();
-        $menuController->deleteMenu();
+    case 'admin_edit_suivi':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->adminEdit();
         break;
-    */
+
+    case 'admin_delete_suivi':
+        require_once 'controllers/SuiviController.php';
+        $suiviController = new SuiviController();
+        $suiviController->adminDelete();
+        break;
+
+    case 'admin_add_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->adminAdd();
+        break;
+
+    case 'admin_edit_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->adminEdit();
+        break;
+
+    case 'admin_delete_consultation':
+        $consultationController = new ConsultationController();
+        $consultationController->adminDelete();
+        break;
 
     default:
         header("HTTP/1.0 404 Not Found");
         echo "Page introuvable.";
         break;
 }
+?>

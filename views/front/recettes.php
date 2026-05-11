@@ -12,7 +12,7 @@ if(!isset($_SESSION['user_id'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Recettes - NutriWise</title>
-    <link rel="stylesheet" href="views/assets/css/style.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap" rel="stylesheet">
 </head>
 <body>

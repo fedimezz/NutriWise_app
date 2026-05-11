@@ -22,7 +22,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <head>
     <meta charset="UTF-8">
     <title>Ajouter Aliment</title>
-    <link rel="stylesheet" href="views/assets/css/style.css">
+    <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
 

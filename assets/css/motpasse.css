@@ -1,0 +1,146 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #0b2b26 0%, #1a4e43 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.container {
+    max-width: 480px;
+    width: 100%;
+}
+
+.card {
+    background: white;
+    border-radius: 32px;
+    padding: 40px 32px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.logo {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.logo span {
+    font-size: 42px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #0b2b26, #3dd68c);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+h1 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #1a2e2a;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.subtitle {
+    text-align: center;
+    color: #6b7c78;
+    font-size: 0.85rem;
+    margin-bottom: 32px;
+}
+
+.form-group {
+    margin-bottom: 24px;
+}
+
+label {
+    display: block;
+    font-weight: 600;
+    color: #1a4e43;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+}
+
+.phone-wrapper {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.country-select {
+    width: 100px;
+    padding: 14px 8px;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    background: #f9fbfd;
+    font-size: 0.9rem;
+    outline: none;
+    font-family: inherit;
+    cursor: pointer;
+}
+
+.country-select:focus {
+    border-color: #3dd68c;
+}
+
+input {
+    flex: 1;
+    padding: 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    font-size: 1rem;
+    outline: none;
+    font-family: inherit;
+    background: #f9fbfd;
+}
+
+input:focus {
+    border-color: #3dd68c;
+    box-shadow: 0 0 0 3px rgba(61, 214, 140, 0.2);
+}
+
+input::placeholder {
+    color: #b9c5c1;
+}
+
+.btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #0b2b26, #1a6e58);
+    color: white;
+    border: none;
+    border-radius: 40px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    margin-top: 12px;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+    background: linear-gradient(135deg, #1a4e43, #2a8e6e);
+}
+
+.back-link {
+    text-align: center;
+    margin-top: 24px;
+}
+
+.back-link a {
+    color: #1a6e58;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.back-link a:hover {
+    text-decoration: underline;
+}

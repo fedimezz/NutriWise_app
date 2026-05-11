@@ -2,10 +2,12 @@
 // controllers/AdminController.php
 require_once 'models/UserModel.php';
 require_once 'models/AlimentModel.php';
+require_once 'models/ConsultationModel.php';
 
 class AdminController {
     private $userModel;
     private $alimentModel;
+    private $consultationModel;
 
     public function __construct() {
         // Sécurité : Vérifier si l'utilisateur est admin
@@ -15,11 +17,14 @@ class AdminController {
         }
         $this->userModel = new UserModel();
         $this->alimentModel = new AlimentModel();
+        $this->consultationModel = new ConsultationModel();
     }
 
     public function dashboard() {
         $totalUsers = $this->userModel->countUsers();
         $totalAliments = $this->alimentModel->countAliments();
+        $totalConsultations = $this->consultationModel->countConsultations();
+        $usersList = $this->userModel->getAllUsers();
         require_once 'views/back/dashboard.php';
     }
 
