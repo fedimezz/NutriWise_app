@@ -5,89 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ajouter une recette - NutriWise</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="views/assets/css/edit_user.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .form-section {
-            background: #f8f9fa;
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 25px;
-        }
-        .form-section h3 {
-            margin-bottom: 15px;
-            color: #2e7d32;
-            font-size: 1.1rem;
-        }
-        .ingredient-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: center;
-        }
-        .ingredient-row select, .ingredient-row input {
-            flex: 1;
-        }
-        .btn-add-ingredient {
-            background: #4caf50;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .btn-remove-ingredient {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-        }
-        .step-row {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 10px;
-            align-items: flex-start;
-        }
-        .step-row textarea {
-            flex: 1;
-            min-height: 60px;
-        }
-        .image-preview {
-            margin-top: 10px;
-            display: none;
-        }
-        .image-preview img {
-            max-width: 200px;
-            border-radius: 12px;
-        }
-    </style>
+        <link rel="stylesheet" href="views/assets/css/admin-global.css">
+
+  
 </head>
 <body>
     <div class="dashboard-container">
-        <aside class="sidebar">
-            <div class="logo">🌿 NutriWise</div>
-            <nav>
-                <a href="index.php?page=admin_dashboard">📊 Tableau de bord</a>
-                <a href="index.php?page=admin_users">👥 Utilisateurs</a>
-                <a href="index.php?page=admin_aliments">🥗 Aliments</a>
-                <a href="index.php?page=admin_recettes" class="active">📖 Recettes</a>
-                <a href="index.php?page=admin_plans">📅 Plans</a>
-            </nav>
-            <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
-        </aside>
+    <aside class="sidebar">
+    <div class="logo">🌿 NutriWise</div>
+
+    <nav>
+        <a href="index.php?page=admin_dashboard"
+           class="<?= ($page=='admin_dashboard') ? 'active' : '' ?>">
+            📊 Tableau de bord
+        </a>
+
+        <a href="index.php?page=admin_users"
+           class="<?= ($page=='admin_users') ? 'active' : '' ?>">
+            👥 Utilisateurs
+        </a>
+
+        <a href="index.php?page=admin_aliments"
+           class="<?= ($page=='admin_aliments') ? 'active' : '' ?>">
+            🥗 Aliments
+        </a>
+
+        <a href="index.php?page=admin_recettes"
+           class="<?= ($page=='admin_recettes') ? 'active' : '' ?>">
+            📖 Recettes
+        </a>
+
+        <a href="index.php?page=admin_plannings"
+           class="<?= ($page=='admin_plannings') ? 'active' : '' ?>">
+            📋 Plannings
+        </a>
+    </nav>
+
+    <a href="index.php?page=logout" class="logout">
+        🚪 Déconnexion
+    </a>
+</aside>
 
         <main class="main-content">
             <header>
                 <h1>Ajouter une recette</h1>
-                <a href="index.php?page=admin_recettes" style="color:#666;">← Retour à la liste</a>
+                <a href="index.php?page=admin_recettes" class="back-link">← Retour à la liste</a>
             </header>
 
             <div class="form-container">
                 <?php if(isset($_SESSION['error'])): ?>
-                    <div class="alert-error" style="color:red; background:#ffebee; padding:12px; border-radius:8px; margin-bottom:15px;">
+                    <div class="alert alert-error">
                         <?= htmlspecialchars($_SESSION['error']) ?>
                         <?php unset($_SESSION['error']); ?>
                     </div>

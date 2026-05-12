@@ -4,9 +4,7 @@ declare(strict_types=1);
 // --- App bootstrap (no extra files) ---
 $rootDir = __DIR__;
 
-
-// Load local environment variables from .env (for XAMPP/Windows setups)
-// Format: KEY=value (no quotes needed). Lines starting with # are ignored.
+// Load local environment variables from .env
 $envFile = $rootDir . DIRECTORY_SEPARATOR . '.env';
 if (is_file($envFile) && is_readable($envFile)) {
     $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
@@ -19,7 +17,6 @@ if (is_file($envFile) && is_readable($envFile)) {
             $key = trim(substr($line, 0, $pos));
             $val = trim(substr($line, $pos + 1));
             if ($key === '') continue;
-            // Don't overwrite existing env vars (SetEnv / system env should win),
             $existing = getenv($key);
             if ($existing === false || $existing === '') {
                 putenv($key . '=' . $val);
@@ -41,6 +38,7 @@ session_set_cookie_params([
 if (session_status() !== PHP_SESSION_ACTIVE) {
     session_start();
 }
+
 // --- Database Connection ---
 $host = env_value('DB_HOST', 'localhost');
 $db   = env_value('DB_NAME', 'nutriwise_db');
@@ -69,23 +67,17 @@ function env_value(string $key, string $default = ''): string {
     return $default;
 }
 
-// SMTP (email) configuration (fill these for production)
-// Recommended: use an App Password (Gmail/Outlook) and STARTTLS on port 587.
-if (!defined('SMTP_HOST')) define('SMTP_HOST', env_value('SMTP_HOST', 'smtp.gmail.com'));           // e.g. smtp.gmail.com
-if (!defined('SMTP_PORT')) define('SMTP_PORT', (int)env_value('SMTP_PORT', '587'));                 // 587 (STARTTLS) or 465 (SSL)
-if (!defined('SMTP_ENCRYPTION')) define('SMTP_ENCRYPTION', env_value('SMTP_ENCRYPTION', 'tls'));    // 'tls', 'ssl', or ''
-if (!defined('SMTP_USERNAME')) define('SMTP_USERNAME', env_value('SMTP_USERNAME', ''));             // e.g. your@gmail.com
-if (!defined('SMTP_PASSWORD')) define('SMTP_PASSWORD', env_value('SMTP_PASSWORD', ''));             // App password
+// SMTP configuration
+if (!defined('SMTP_HOST')) define('SMTP_HOST', env_value('SMTP_HOST', 'smtp.gmail.com'));
+if (!defined('SMTP_PORT')) define('SMTP_PORT', (int)env_value('SMTP_PORT', '587'));
+if (!defined('SMTP_ENCRYPTION')) define('SMTP_ENCRYPTION', env_value('SMTP_ENCRYPTION', 'tls'));
+if (!defined('SMTP_USERNAME')) define('SMTP_USERNAME', env_value('SMTP_USERNAME', ''));
+if (!defined('SMTP_PASSWORD')) define('SMTP_PASSWORD', env_value('SMTP_PASSWORD', ''));
 if (!defined('SMTP_FROM_EMAIL')) define('SMTP_FROM_EMAIL', env_value('SMTP_FROM_EMAIL', env_value('SMTP_USERNAME', '')));
 if (!defined('SMTP_FROM_NAME')) define('SMTP_FROM_NAME', env_value('SMTP_FROM_NAME', 'NutriWise'));
-// For local Windows/XAMPP, certificate validation may fail if CA bundle is missing.
-// Set SMTP_VERIFY_PEER=1 in production.
 if (!defined('SMTP_VERIFY_PEER')) define('SMTP_VERIFY_PEER', env_value('SMTP_VERIFY_PEER', '') === '1');
 
-// Google OAuth (Login with Google)
-// Create credentials in Google Cloud Console (OAuth 2.0 Client ID - Web application).
-// Authorized redirect URI example:
-//   http://localhost/<your-project>/index.php?page=google_callback
+// Google OAuth
 if (!defined('GOOGLE_CLIENT_ID')) define('GOOGLE_CLIENT_ID', env_value('GOOGLE_CLIENT_ID', ''));
 if (!defined('GOOGLE_CLIENT_SECRET')) define('GOOGLE_CLIENT_SECRET', env_value('GOOGLE_CLIENT_SECRET', ''));
 
@@ -98,7 +90,6 @@ function redirect(string $location): void {
     exit();
 }
 
-// CSRF protection (basic, session-based)
 function csrf_token(): string {
     if (!isset($_SESSION['_csrf']) || !is_string($_SESSION['_csrf']) || $_SESSION['_csrf'] === '') {
         $_SESSION['_csrf'] = bin2hex(random_bytes(32));
@@ -122,7 +113,6 @@ function current_user_role(): string {
     return isset($_SESSION['user_role']) && is_string($_SESSION['user_role']) ? $_SESSION['user_role'] : ROLE_USER;
 }
 
-// Role ordering: owner > admin > nutritionist > user
 function role_rank(string $role): int {
     switch ($role) {
         case ROLE_OWNER: return 4;
@@ -138,12 +128,8 @@ function require_login(string $redirectTo = 'index.php?page=login&error=Veuillez
     }
 }
 
-// Require at least one of the provided roles (or higher rank).
 function require_role(array $roles, string $redirectTo = 'index.php?page=home'): void {
     $current = current_user_role();
-
-    // With hierarchical roles, the *lowest* required rank is enough.
-    // Example: [admin, owner] should require admin (owner passes automatically).
     $requiredRank = null;
     foreach ($roles as $r) {
         $rank = role_rank((string)$r);
@@ -152,7 +138,6 @@ function require_role(array $roles, string $redirectTo = 'index.php?page=home'):
     if ($requiredRank === null) {
         $requiredRank = role_rank(ROLE_USER);
     }
-
     if (role_rank($current) < $requiredRank) {
         redirect($redirectTo);
     }
@@ -168,14 +153,17 @@ require_once 'controllers/NotificationController.php';
 require_once 'controllers/RecetteController.php';
 require_once __DIR__ . '/controllers/ChatbotController.php';
 require_once 'controllers/SuiviController.php';
+require_once 'controllers/PlanningController.php';
 
 // On récupère la page demandée, sinon 'home'
 $page = isset($_GET['page']) ? $_GET['page'] : 'home';
 
 switch ($page) {
-    // --- FRONTEND ---
+    // ========================================
+    // FRONTEND
+    // ========================================
+    
     case 'home':
-        // On inclut la vue de la page d'accueil
         require_once 'views/front/index.php';
         break;
 
@@ -193,15 +181,16 @@ switch ($page) {
         $auth = new AuthController();
         $auth->handleRegister();
         break;
+        
     case 'verify_email':
-    $auth = new AuthController();
-    $auth->verifyEmail();
-    break;
+        $auth = new AuthController();
+        $auth->verifyEmail();
+        break;
 
     case 'resend_code':
-    $auth = new AuthController();
-    $auth->resendCode();
-    break;
+        $auth = new AuthController();
+        $auth->resendCode();
+        break;
 
     case 'logout':
         $auth = new AuthController();
@@ -223,59 +212,65 @@ switch ($page) {
         $alimentController->frontList();
         break;
 
+    case 'aliment_details':
+        $alimentController = new AlimentController();
+        $alimentController->details();
+        break;
+
     case 'recettes':
         $user = new UserController();
         $user->recettes();
         break;
 
-case 'suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->index();
-    break;
+    case 'recette_details':
+        $user = new UserController();
+        $user->recetteDetails();
+        break;
 
-case 'add_meal_suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->addMeal();
-    break;
+    case 'suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->index();
+        break;
 
-case 'add_activity_suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->addActivity();
-    break;
+    case 'add_meal_suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->addMeal();
+        break;
 
-case 'add_water_suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->addWater();
-    break;
+    case 'add_activity_suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->addActivity();
+        break;
 
-case 'delete_meal_suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->deleteMeal();
-    break;
+    case 'add_water_suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->addWater();
+        break;
 
-case 'delete_activity_suivi':
-    $suiviController = new SuiviController($pdo);
-    $suiviController->deleteActivity();
-    break;
+    case 'delete_meal_suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->deleteMeal();
+        break;
 
-  case 'motpasse':
-    // Sécurité : empêcher accès direct au step=verify sans session valide
-    $step = $_GET['step'] ?? 'request';
-    if ($step === 'verify' && !isset($_SESSION['reset_verify'])) {
-        $_SESSION['error'] = "Veuillez d'abord demander un code.";
-        redirect("index.php?page=motpasse");
-    }
+    case 'delete_activity_suivi':
+        $suiviController = new SuiviController($pdo);
+        $suiviController->deleteActivity();
+        break;
 
-    $auth = new AuthController();
-    $auth->handleForgotPassword();
-    break;
-
-
+    case 'motpasse':
+        $step = $_GET['step'] ?? 'request';
+        if ($step === 'verify' && !isset($_SESSION['reset_verify'])) {
+            $_SESSION['error'] = "Veuillez d'abord demander un code.";
+            redirect("index.php?page=motpasse");
+        }
+        $auth = new AuthController();
+        $auth->handleForgotPassword();
+        break;
 
     case 'forgot_step':
-    $auth = new AuthController();
-    $auth->forgotStep();
-    break;
+        $auth = new AuthController();
+        $auth->forgotStep();
+        break;
 
     case 'test_email':
         $auth = new AuthController();
@@ -291,10 +286,11 @@ case 'delete_activity_suivi':
         $auth = new AuthController();
         $auth->googleLogin();
         break;
+        
     case 'google_signup':
-    $auth = new AuthController();
-    $auth->googleLogin('signup');
-    break;
+        $auth = new AuthController();
+        $auth->googleLogin('signup');
+        break;
 
     case 'google_callback':
         $auth = new AuthController();
@@ -302,137 +298,210 @@ case 'delete_activity_suivi':
         break;
 
     case 'add_aliment':
-        // Legacy page: redirect to the admin flow
         redirect("index.php?page=admin_add_aliment");
         break;
+        
     case 'get_notifications':
-    $controller = new NotificationController($pdo);
-    $controller->getLatest();
-    break;
-
-case 'mark_notification':
-    $controller = new NotificationController($pdo);
-    $controller->markAsRead();
-    break;
-    case 'recettes':
-    $user = new UserController();
-    $user->recettes();
-    break;
-
-case 'recette_details':
-    $user = new UserController();
-    $user->recetteDetails();
-    break;
-
-    case 'aliment_details':
-        $alimentController = new AlimentController();
-        $alimentController->details();
+        $controller = new NotificationController($pdo);
+        $controller->getLatest();
         break;
 
+    case 'mark_notification':
+        $controller = new NotificationController($pdo);
+        $controller->markAsRead();
+        break;
+
+    case 'chatbot_api':
+        $controller = new ChatbotController($pdo);
+        $controller->api();
+        exit;
+
     case 'nutritionist_dashboard':
-        // Owner/admin can access too (higher rank).
         require_role([ROLE_NUTRITIONIST]);
         $page = 'nutritionist_dashboard';
         require_once 'views/front/suivi.php';
         break;
-        // Ajouter dans votre routeur/index.php
 
-case 'chatbot_api':
+    // ========================================
+    // GESTION DES PLANNINGS NUTRITIONNELS (FRONT)
+    // ========================================
+    
+    case 'nutrition_plans':
+        $planningController = new PlanningController($pdo);
+        $planningController->frontList();
+        break;
 
+    case 'nutrition_plan_details':
+        $planningController = new PlanningController($pdo);
+        $planningController->details();
+        break;
 
-    $controller = new ChatbotController($pdo);
+    case 'nutrition_plans_calendar':
+        $planningController = new PlanningController($pdo);
+        $planningController->calendar();
+        break;
 
-    $controller->api();
+    case 'toggle_planning_like':
+        $planningController = new PlanningController($pdo);
+        $planningController->toggleLike();
+        break;
 
-    exit;
+    case 'toggle_favorite':
+        $planningController = new PlanningController($pdo);
+        $planningController->toggleFavorite();
+        break;
 
-// --- BACKEND (ADMIN) ---
-case 'admin_dashboard':
-    $admin = new AdminController($pdo);
-    $admin->dashboard();
+    case 'schedule_planning':
+        $planningController = new PlanningController($pdo);
+        $planningController->schedule();
+        break;
+
+    case 'my_schedules':
+        $planningController = new PlanningController($pdo);
+        $planningController->mySchedules();
+        break;
+
+    case 'delete_schedule':
+        $planningController = new PlanningController($pdo);
+        $planningController->deleteSchedule();
+        break;
+
+    case 'complete_schedule':
+        $planningController = new PlanningController($pdo);
+        $planningController->completeSchedule();
+        break;
+        // Routes pour les notifications
+case 'get_notifications':
+    $controller->getNotifications();
+    break;
+case 'get_notification_count':
+    $controller->getNotificationCount();
+    break;
+case 'mark_notification':
+    $controller->markNotification();
+    break;
+case 'mark_all_notifications':
+    $controller->markAllNotifications();
     break;
 
-case 'admin_delete_users_bulk':
-    $admin = new AdminController($pdo);
-    $admin->deleteUsersBulk();
-    break;
+    // ========================================
+    // BACKEND (ADMIN)
+    // ========================================
+    
+    case 'admin_dashboard':
+        $admin = new AdminController($pdo);
+        $admin->dashboard();
+        break;
 
-case 'activity_feed':
-    require_role([ROLE_ADMIN, ROLE_OWNER]);
-    $activity = new ActivityLogController();
-    $activity->feed();
-    break;
+    case 'admin_delete_users_bulk':
+        $admin = new AdminController($pdo);
+        $admin->deleteUsersBulk();
+        break;
 
-case 'admin_recettes':
-    $admin = new AdminController($pdo);
-    $admin->adminRecettes();
-    break;
+    case 'activity_feed':
+        require_role([ROLE_ADMIN, ROLE_OWNER]);
+        $activity = new ActivityLogController();
+        $activity->feed();
+        break;
 
-case 'admin_plans':
-    $admin = new AdminController($pdo);
-    $admin->adminPlans();
-    break;
+    case 'admin_recettes':
+        $admin = new AdminController($pdo);
+        $admin->adminRecettes();
+        break;
 
-case 'admin_users':
-    $admin = new AdminController($pdo);
-    $admin->listUsers();
-    break;
+    case 'admin_add_recette':
+        $recetteController = new RecetteController($pdo);
+        $recetteController->adminAdd();
+        break;
 
-case 'admin_add_user':
-    $admin = new AdminController($pdo);
-    $admin->addUser();
-    break;
+    case 'admin_edit_recette':
+        $recetteController = new RecetteController($pdo);
+        $recetteController->adminEdit();
+        break;
 
-case 'admin_edit_user':
-    $admin = new AdminController($pdo);
-    $admin->editUser();
-    break;
+    case 'admin_delete_recette':
+        $recetteController = new RecetteController($pdo);
+        $recetteController->adminDelete();
+        break;
 
-case 'admin_delete_user':
-    $admin = new AdminController($pdo);
-    $admin->deleteUser();
-    break;
+    case 'admin_plans':
+        $admin = new AdminController($pdo);
+        $admin->adminPlans();
+        break;
 
-case 'admin_aliments':
-    $alimentController = new AlimentController();
-    $alimentController->listAliments();
-    break;
+    case 'admin_users':
+        $admin = new AdminController($pdo);
+        $admin->listUsers();
+        break;
 
-case 'admin_add_aliment':
-    $alimentController = new AlimentController();
-    $alimentController->addAliment();
-    break;
+    case 'admin_add_user':
+        $admin = new AdminController($pdo);
+        $admin->addUser();
+        break;
 
-case 'admin_delete_aliment':
-    $alimentController = new AlimentController();
-    $alimentController->deleteAliment();
-    break;
+    case 'admin_edit_user':
+        $admin = new AdminController($pdo);
+        $admin->editUser();
+        break;
 
-case 'admin_edit_aliment':
-    $alimentController = new AlimentController();
-    $alimentController->editAliment();
-    break;
-// --- GESTION DES RECETTES (ADMIN) ---
-case 'admin_recettes_list':
-    $recetteController = new RecetteController($pdo);
-    $recetteController->adminList();
-    break;
+    case 'admin_delete_user':
+        $admin = new AdminController($pdo);
+        $admin->deleteUser();
+        break;
 
-case 'admin_add_recette':
-    $recetteController = new RecetteController($pdo);
-    $recetteController->adminAdd();
-    break;
+    case 'admin_aliments':
+        $alimentController = new AlimentController();
+        $alimentController->listAliments();
+        break;
 
-case 'admin_edit_recette':
-    $recetteController = new RecetteController($pdo);
-    $recetteController->adminEdit();
-    break;
+    case 'admin_add_aliment':
+        $alimentController = new AlimentController();
+        $alimentController->addAliment();
+        break;
 
-case 'admin_delete_recette':
-    $recetteController = new RecetteController($pdo);
-    $recetteController->adminDelete();
-    break;
+    case 'admin_delete_aliment':
+        $alimentController = new AlimentController();
+        $alimentController->deleteAliment();
+        break;
 
+    case 'admin_edit_aliment':
+        $alimentController = new AlimentController();
+        $alimentController->editAliment();
+        break;
+
+    // ========================================
+    // GESTION DES PLANNINGS (ADMIN)
+    // ========================================
+    
+    case 'admin_plannings':
+        $planningController = new PlanningController($pdo);
+        $planningController->listPlannings();
+        break;
+
+    case 'admin_add_planning':
+        $planningController = new PlanningController($pdo);
+        $planningController->addPlanning();
+        break;
+
+    case 'admin_edit_planning':
+        $planningController = new PlanningController($pdo);
+        $planningController->editPlanning();
+        break;
+
+    case 'admin_delete_planning':
+        $planningController = new PlanningController($pdo);
+        $planningController->deletePlanning();
+        break;
+
+    case 'admin_planning_details':
+        $planningController = new PlanningController($pdo);
+        $planningController->adminDetails();
+        break;
+
+    // ========================================
+    // DEFAULT
+    // ========================================
+    
     default:
         header("HTTP/1.0 404 Not Found");
         echo "Page introuvable.";

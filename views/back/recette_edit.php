@@ -1,3 +1,7 @@
+<?php
+// views/back/edit_recette.php
+?>
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -5,111 +9,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Modifier une recette - NutriWise</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="views/assets/css/users.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="views/assets/css/admin-global.css">
+
     <style>
-        .form-container {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            margin-top: 1rem;
-        }
-        .form-section {
-            margin-bottom: 2rem;
-            padding-bottom: 1.5rem;
-            border-bottom: 1px solid var(--vert-pale);
-        }
-        .form-section:last-child {
-            border-bottom: none;
-        }
-        .form-section h3 {
-            color: var(--vert-profond);
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
-        .form-group {
-            margin-bottom: 1rem;
-        }
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-            color: #333;
-            font-size: 0.85rem;
-        }
-        .form-group input,
-        .form-group select,
-        .form-group textarea {
-            width: 100%;
-            padding: 0.7rem 1rem;
-            border: 1px solid var(--vert-pale);
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 0.85rem;
-        }
-        .form-group input:focus,
-        .form-group select:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: var(--vert-principal);
-        }
         .current-image {
             margin-top: 10px;
         }
         .current-image img {
             max-width: 150px;
             border-radius: 8px;
-            border: 1px solid var(--vert-pale);
+            border: 1px solid #c8e6c9;
         }
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            margin-top: 2rem;
-            padding-top: 1rem;
-            border-top: 1px solid var(--vert-pale);
-        }
-        .btn-save {
-            background: var(--vert-principal);
-            color: white;
-            border: none;
-            padding: 0.7rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-        .btn-cancel {
-            background: #f0f3ef;
-            color: #666;
-            border: none;
-            padding: 0.7rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            text-decoration: none;
-        }
-        .btn-save:hover, .btn-cancel:hover {
-            opacity: 0.8;
-        }
-        .alert-error {
-            background: #FFEBEE;
-            color: #C62828;
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-        .alert-success {
-            background: var(--vert-pale);
-            color: var(--vert-profond);
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+        .form-group small {
+            display: block;
+            margin-top: 5px;
+            color: #6b8a66;
+            font-size: 0.75rem;
         }
     </style>
 </head>
@@ -119,31 +35,27 @@
     <aside class="sidebar">
         <div class="logo">🌿 NutriWise</div>
         <nav>
-            <a href="index.php?page=admin_dashboard">📊 Tableau de bord</a>
+            <a href="index.php?page=admin_dashboard">📊 Dashboard</a>
             <a href="index.php?page=admin_users">👥 Utilisateurs</a>
             <a href="index.php?page=admin_aliments">🥗 Aliments</a>
             <a href="index.php?page=admin_recettes" class="active">📖 Recettes</a>
-            <a href="index.php?page=admin_plans">📅 Plans</a>
+            <a href="index.php?page=admin_plannings">📋 Plannings</a>
         </nav>
         <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
     </aside>
 
     <main class="main-content">
         <header>
-            <h1>✏️ Modifier la recette</h1>
-            <a href="index.php?page=admin_recettes" style="color:#666; text-decoration:none;">← Retour</a>
+            <h1><i class="fas fa-edit"></i> Modifier la recette</h1>
+            <a href="index.php?page=admin_recettes" class="btn-cancel" style="padding:8px 16px;">← Retour</a>
         </header>
 
         <?php if(isset($_SESSION['error'])): ?>
-            <div class="alert-error">
-                <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?>
-            </div>
+            <div class="alert-error">⚠️ <?= htmlspecialchars($_SESSION['error']); unset($_SESSION['error']); ?></div>
         <?php endif; ?>
 
         <?php if(isset($_SESSION['success'])): ?>
-            <div class="alert-success">
-                <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?>
-            </div>
+            <div class="alert-success">✓ <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
         <?php endif; ?>
 
         <div class="form-container">
@@ -154,11 +66,11 @@
                     <h3><i class="fas fa-info-circle"></i> Informations générales</h3>
                     <div class="form-row">
                         <div class="form-group">
-                            <label>Nom de la recette *</label>
+                            <label>Nom de la recette <span class="required">*</span></label>
                             <input type="text" name="nom" value="<?= htmlspecialchars($recette['nom'] ?? '') ?>" required>
                         </div>
                         <div class="form-group">
-                            <label>Catégorie *</label>
+                            <label>Catégorie</label>
                             <select name="categorie">
                                 <option value="Petit-déjeuner" <?= ($recette['categorie'] ?? '') == 'Petit-déjeuner' ? 'selected' : '' ?>>🍳 Petit-déjeuner</option>
                                 <option value="Entrée" <?= ($recette['categorie'] ?? '') == 'Entrée' ? 'selected' : '' ?>>🥗 Entrée</option>
@@ -223,7 +135,7 @@
                 </div>
 
                 <div class="form-actions">
-                    <button type="submit" class="btn-save">💾 Enregistrer</button>
+                    <button type="submit" class="btn-save"><i class="fas fa-save"></i> Enregistrer</button>
                     <a href="index.php?page=admin_recettes" class="btn-cancel">Annuler</a>
                 </div>
             </form>

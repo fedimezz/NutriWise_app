@@ -1,4 +1,6 @@
 <?php
+// views/back/recettes.php
+
 function getAdminRecetteImageUrl($image) {
     if (empty($image)) return null;
     if (filter_var($image, FILTER_VALIDATE_URL)) {
@@ -15,7 +17,9 @@ function getAdminRecetteImageUrl($image) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion des recettes - NutriWise</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="views/assets/css/users.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+        <link rel="stylesheet" href="views/assets/css/admin-global.css">
+
     <style>
         .recipe-image {
             width: 50px;
@@ -26,7 +30,7 @@ function getAdminRecetteImageUrl($image) {
         .image-placeholder {
             width: 50px;
             height: 50px;
-            background: var(--vert-pale);
+            background: #e8f5e9;
             border-radius: 8px;
             display: flex;
             align-items: center;
@@ -34,25 +38,25 @@ function getAdminRecetteImageUrl($image) {
             font-size: 1.2rem;
         }
         .badge-easy {
-            background: var(--vert-pale);
-            color: var(--vert-profond);
-            padding: 0.25rem 0.75rem;
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             display: inline-block;
         }
         .badge-medium {
-            background: #FFF3E0;
-            color: #E65100;
-            padding: 0.25rem 0.75rem;
+            background: #fff3e0;
+            color: #ef6c00;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             display: inline-block;
         }
         .badge-hard {
-            background: #FFEBEE;
-            color: #C62828;
-            padding: 0.25rem 0.75rem;
+            background: #ffebee;
+            color: #c62828;
+            padding: 4px 12px;
             border-radius: 20px;
             font-size: 0.75rem;
             display: inline-block;
@@ -73,51 +77,20 @@ function getAdminRecetteImageUrl($image) {
         .stat-number {
             font-size: 1.8rem;
             font-weight: 700;
-            color: var(--vert-principal);
+            color: #2e7d32;
         }
         .stat-label {
             color: #666;
             font-size: 0.8rem;
         }
         .btn-view {
-            background: #E3F2FD;
-            color: #1976D2;
-            padding: 0.25rem 0.5rem;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 10px;
             border-radius: 6px;
             text-decoration: none;
             font-size: 0.75rem;
             display: inline-block;
-        }
-        .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        .pagination {
-            display: flex;
-            justify-content: center;
-            gap: 0.5rem;
-            margin-top: 2rem;
-        }
-        .pagination a, .pagination span {
-            padding: 0.5rem 1rem;
-            border-radius: 8px;
-            text-decoration: none;
-            background: white;
-            color: var(--vert-profond);
-            border: 1px solid var(--vert-pale);
-        }
-        .pagination .active {
-            background: var(--vert-principal);
-            color: white;
-        }
-        .filters {
-            display: flex;
-            gap: 1rem;
-            margin-bottom: 1rem;
-        }
-        .search-input {
-            flex: 1;
         }
     </style>
 </head>
@@ -127,11 +100,11 @@ function getAdminRecetteImageUrl($image) {
     <aside class="sidebar">
         <div class="logo">🌿 NutriWise</div>
         <nav>
-            <a href="index.php?page=admin_dashboard">📊 Tableau de bord</a>
+            <a href="index.php?page=admin_dashboard">📊 Dashboard</a>
             <a href="index.php?page=admin_users">👥 Utilisateurs</a>
             <a href="index.php?page=admin_aliments">🥗 Aliments</a>
             <a href="index.php?page=admin_recettes" class="active">📖 Recettes</a>
-            <a href="index.php?page=admin_plans">📅 Plans</a>
+            <a href="index.php?page=admin_plannings">📋 Plannings</a>
         </nav>
         <a href="index.php?page=logout" class="logout">🚪 Déconnexion</a>
     </aside>
@@ -145,7 +118,7 @@ function getAdminRecetteImageUrl($image) {
         </header>
 
         <?php if(isset($_SESSION['success'])): ?>
-            <p style="color:green; margin-bottom:1rem;"><?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></p>
+            <div class="alert-success">✓ <?= htmlspecialchars($_SESSION['success']); unset($_SESSION['success']); ?></div>
         <?php endif; ?>
 
         <div class="stats-grid">
@@ -176,8 +149,8 @@ function getAdminRecetteImageUrl($image) {
             </select>
         </div>
 
-        <div class="users-table-container">
-            <table class="users-table">
+        <div class="table-container">
+            <table class="admin-table">
                 <thead>
                     <tr>
                         <th>Image</th>
@@ -197,7 +170,7 @@ function getAdminRecetteImageUrl($image) {
                                 <td>
                                     <?php $img = getAdminRecetteImageUrl($recette['image'] ?? null); ?>
                                     <?php if ($img): ?>
-                                        <img src="<?= htmlspecialchars($img) ?>" class="recipe-image" style="width:50px;height:50px;object-fit:cover;border-radius:8px;">
+                                        <img src="<?= htmlspecialchars($img) ?>" class="recipe-image">
                                     <?php else: ?>
                                         <div class="image-placeholder">🍳</div>
                                     <?php endif; ?>
@@ -232,7 +205,7 @@ function getAdminRecetteImageUrl($image) {
                                 <td><?= $recette['portions'] ?? '—' ?></td>
                                 <td><?= number_format($recette['views'] ?? 0) ?></td>
                                 <td>
-                                    <div class="action-buttons">
+                                    <div class="actions">
                                         <a href="index.php?page=admin_edit_recette&id=<?= $recette['id'] ?>" class="btn-edit">✏️</a>
                                         <a href="index.php?page=admin_delete_recette&id=<?= $recette['id'] ?>" class="btn-delete" onclick="return confirm('Supprimer ?')">🗑️</a>
                                     </div>
@@ -263,7 +236,7 @@ function getAdminRecetteImageUrl($image) {
 <script>
     const searchInput = document.getElementById('searchInput');
     const categorieFilter = document.getElementById('categorieFilter');
-    const rows = document.querySelectorAll('.users-table tbody tr');
+    const rows = document.querySelectorAll('.admin-table tbody tr');
 
     function filterTable() {
         const searchTerm = searchInput.value.toLowerCase();

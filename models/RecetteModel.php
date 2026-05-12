@@ -209,5 +209,53 @@ class RecetteModel {
             return false;
         }
     }
+    // ========================================
+// GESTION DES NOTIFICATIONS POUR RECETTES
+// ========================================
+
+/**
+ * Créer une notification pour tous les utilisateurs (sauf admin)
+ * Quand un admin crée une nouvelle recette
+ */
+public function createRecetteNotification($recetteId, $adminId) {
+    try {
+        // Récupérer les infos de la recette
+        $recette = $this->getRecetteById($recetteId);
+        if (!$recette) {
+            return false;
+        }
+        
+        // Récupérer tous les utilisateurs normaux (role = 'user' ou role_id = 4)
+        $sql = "SELECT id FROM users WHERE role = 'user' OR role_id = 4";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+        $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        // Message de notification
+        $message = "🍳 Nouvelle recette : " . htmlspecialchars($recette['nom']) . " - " . htmlspecialchars($recette['categorie'] ?? 'Plat');
+        
+        // Créer une notification pour chaque utilisateur
+        $sqlInsert = "INSERT INTO notifications (user_id, recette_id, type, message, created_at) 
+                      VALUES (:user_id, :recette_id, 'new_recette', :message, NOW())";
+        $stmtInsert = $this->conn->prepare($sqlInsert);
+        
+        $count = 0;
+        foreach ($users as $user) {
+            $stmtInsert->execute([
+                ':user_id' => $user['id'],
+                ':recette_id' => $recetteId,
+                ':message' => $message
+            ]);
+            $count++;
+        }
+        
+        error_log("Notifications recette créées pour $count utilisateurs (recette #$recetteId)");
+        return true;
+        
+    } catch (PDOException $e) {
+        error_log("Erreur createRecetteNotification: " . $e->getMessage());
+        return false;
+    }
+}
 }
 ?>
