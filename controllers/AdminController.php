@@ -7,6 +7,7 @@
  * - Aliment/food item management
  * - Recipe administration
  * - Nutrition plan management
+ * - Planning management (NEW)
  *
  * Access restricted to ADMIN and OWNER roles
  *
@@ -15,27 +16,43 @@
  */
 
 require_once 'models/UserModel.php';
+require_once 'models/RecetteModel.php';
 require_once 'models/AlimentModel.php';
 require_once 'models/ActivityLogModel.php';
+require_once 'models/PlanningModel.php'; // AJOUTÉ
 
 class AdminController
 {
     /** @var UserModel User model instance */
     private UserModel $userModel;
 
+    /** @var RecetteModel Recette model instance */
+    private RecetteModel $recetteModel;
+
     /** @var AlimentModel Aliment model instance */
     private AlimentModel $alimentModel;
+    
+    /** @var PlanningModel Planning model instance */
+    private PlanningModel $planningModel; // AJOUTÉ
+    
+    /** @var PDO Database connection */
+    private $pdo;
 
     /**
      * Constructor - Verify admin/owner access and initialize models
      */
-    public function __construct()
+    public function __construct($pdo)
     {
         require_role([ROLE_ADMIN, ROLE_OWNER]);
-        $this->userModel = new UserModel();
-        $this->alimentModel = new AlimentModel();
-    }
 
+        $this->pdo = $pdo;
+
+        $this->userModel = new UserModel($pdo);
+        $this->recetteModel = new RecetteModel($pdo);
+        $this->alimentModel = new AlimentModel($pdo);
+        $this->planningModel = new PlanningModel($pdo); // AJOUTÉ
+    }
+    
     // ========================================
     // DASHBOARD / OVERVIEW
     // ========================================
@@ -43,16 +60,20 @@ class AdminController
     /**
      * Display admin dashboard with statistics
      *
-     * Shows overview of total users, aliments, recipes, and active plans
+     * Shows overview of total users, aliments, recipes, active plans, and plannings
      */
     public function dashboard() {
         $page = 'admin_dashboard';
 
-        // Statistiques
+        // Statistiques existantes
         $totalUsers    = $this->userModel->countUsers();
         $totalAliments = $this->alimentModel->countAliments();
-        $totalRecipes  = $this->userModel->countRecipes();
+        $totalRecipes  = $this->recetteModel->countRecettes(null, null);
         $activePlans   = $this->userModel->countActivePlans();
+        
+        // NOUVELLES STATISTIQUES
+        $totalPlannings = $this->planningModel->countPlannings();
+        $activePlannings = $this->planningModel->countPlannings(null, 'active');
 
         // Derniers utilisateurs
         $usersList = $this->userModel->getAllUsers();
@@ -77,6 +98,170 @@ class AdminController
         $page = 'admin_users';
         $usersList = $this->userModel->getAllUsers();
         require_once 'views/back/users.php';
+    }
+    
+    /**
+     * Modifier une recette
+     */
+    public function editRecette() {
+        $id = (int)($_GET['id'] ?? 0);
+        
+        // Récupérer la recette
+        $stmt = $this->pdo->prepare("SELECT * FROM recettes WHERE id = :id");
+        $stmt->execute([':id' => $id]);
+        $recette = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$recette) {
+            $_SESSION['error'] = "Recette non trouvée";
+            redirect('index.php?page=admin_recettes');
+        }
+        
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            // CSRF check
+            if (!isset($_POST['_csrf']) || $_POST['_csrf'] !== $_SESSION['_csrf']) {
+                $_SESSION['error'] = "Erreur de sécurité";
+                redirect('index.php?page=admin_edit_recette&id=' . $id);
+            }
+            
+            // Récupérer les données
+            $nom = trim($_POST['nom'] ?? '');
+            $description = trim($_POST['description'] ?? '');
+            $categorie = $_POST['categorie'] ?? '';
+            $difficulte = $_POST['difficulte'] ?? 'Facile';
+            $temps_preparation = (int)($_POST['temps_preparation'] ?? 0);
+            $temps_cuisson = (int)($_POST['temps_cuisson'] ?? 0);
+            $portions = (int)($_POST['portions'] ?? 4);
+            
+            // Validation simple
+            if (empty($nom)) {
+                $_SESSION['error'] = "Le nom de la recette est obligatoire";
+                redirect('index.php?page=admin_edit_recette&id=' . $id);
+            }
+            
+            // Gestion de l'image
+            $image = $recette['image'];
+            if (isset($_FILES['image']) && $_FILES['image']['error'] === UPLOAD_ERR_OK) {
+                $uploadDir = 'views/assets/uploads/recettes/';
+                if (!is_dir($uploadDir)) {
+                    mkdir($uploadDir, 0777, true);
+                }
+                $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+                $fileName = time() . '_' . uniqid() . '.' . $ext;
+                $targetPath = $uploadDir . $fileName;
+                
+                if (move_uploaded_file($_FILES['image']['tmp_name'], $targetPath)) {
+                    $image = $fileName;
+                }
+            }
+            
+            // Mise à jour
+            try {
+                $sql = "UPDATE recettes SET 
+                        nom = :nom, 
+                        description = :description, 
+                        categorie = :categorie, 
+                        difficulte = :difficulte, 
+                        temps_preparation = :temps_preparation, 
+                        temps_cuisson = :temps_cuisson, 
+                        portions = :portions, 
+                        image = :image 
+                        WHERE id = :id";
+                        
+                $stmt = $this->pdo->prepare($sql);
+                $stmt->execute([
+                    ':nom' => $nom,
+                    ':description' => $description,
+                    ':categorie' => $categorie,
+                    ':difficulte' => $difficulte,
+                    ':temps_preparation' => $temps_preparation,
+                    ':temps_cuisson' => $temps_cuisson,
+                    ':portions' => $portions,
+                    ':image' => $image,
+                    ':id' => $id
+                ]);
+                
+                $_SESSION['success'] = "Recette modifiée avec succès !";
+                redirect('index.php?page=admin_recettes');
+                
+            } catch (PDOException $e) {
+                $_SESSION['error'] = "Erreur : " . $e->getMessage();
+                redirect('index.php?page=admin_edit_recette&id=' . $id);
+            }
+        }
+        
+        // Afficher le formulaire
+        require_once 'views/back/recette_edit.php';
+    }
+
+    /**
+     * Afficher la liste des recettes pour l'admin
+     */
+    public function adminRecettes() {
+        // Vérifier les droits admin
+        if (role_rank(current_user_role()) < role_rank(ROLE_ADMIN)) {
+            redirect('index.php?page=home');
+        }
+
+        // Handle recipe deletion
+        if (($_GET['action'] ?? '') === 'delete_recipe') {
+            $rid = (int)($_GET['id'] ?? 0);
+            if ($rid > 0) {
+                // Delete recipe and its relations
+                try {
+                    // Delete from recette_ingredients first
+                    $stmt = $this->pdo->prepare("DELETE FROM recette_ingredients WHERE recette_id = :id");
+                    $stmt->execute([':id' => $rid]);
+                    
+                    // Delete from recette_etapes
+                    $stmt = $this->pdo->prepare("DELETE FROM recette_etapes WHERE recette_id = :id");
+                    $stmt->execute([':id' => $rid]);
+                    
+                    // Delete from recette_favoris
+                    $stmt = $this->pdo->prepare("DELETE FROM recette_favoris WHERE recette_id = :id");
+                    $stmt->execute([':id' => $rid]);
+                    
+                    // Delete the recipe
+                    $stmt = $this->pdo->prepare("DELETE FROM recettes WHERE id = :id");
+                    $stmt->execute([':id' => $rid]);
+                    
+                    $_SESSION['success'] = "Recette supprimée avec succès !";
+                } catch (PDOException $e) {
+                    $_SESSION['error'] = "Erreur lors de la suppression : " . $e->getMessage();
+                }
+            }
+            redirect("index.php?page=admin_recettes");
+        }
+
+        // Paramètres de pagination et recherche
+        $page = isset($_GET['page_num']) ? (int)$_GET['page_num'] : 1;
+        $search = $_GET['search'] ?? '';
+        $perPage = 10;
+        
+        // Récupérer les recettes
+        $recettesList = $this->recetteModel->getAllRecettes($search, null, $page, $perPage);
+        $totalRecettes = $this->recetteModel->countRecettes($search, null);
+        
+        // Calculer le nombre total d'ingrédients utilisés
+        $totalIngredients = $this->getTotalIngredientsCount();
+        
+        $totalPages = ceil($totalRecettes / $perPage);
+        $currentPage = $page;
+        
+        // Inclure la vue
+        require_once 'views/back/recettes.php';
+    }
+
+    /**
+     * Compter le nombre total d'ingrédients utilisés
+     */
+    private function getTotalIngredientsCount() {
+        try {
+            $stmt = $this->pdo->query("SELECT COUNT(DISTINCT ingredient_id) as total FROM recette_ingredients");
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            return (int)($result['total'] ?? 0);
+        } catch (PDOException $e) {
+            return 0;
+        }
     }
 
     /**
@@ -359,39 +544,6 @@ class AdminController
     }
 
     // ========================================
-    // RECIPE MANAGEMENT
-    // ========================================
-
-    /**
-     * Manage recipes (view, delete)
-     * 
-     * Admin can delete any recipe
-     */
-    public function adminRecettes()
-    {
-        require_role([ROLE_ADMIN, ROLE_OWNER]);
-        $page = 'admin_recettes';
-
-        // Handle recipe deletion
-        if (($_GET['action'] ?? '') === 'delete_recipe') {
-            $rid = (int)($_GET['id'] ?? 0);
-            if ($rid > 0) {
-                if ($this->userModel->deleteRecipe($rid, current_user_id() ?? 0, current_user_role())) {
-                    $_SESSION['success'] = "Recette supprimée.";
-                } else {
-                    $_SESSION['error'] = "Erreur lors de la suppression.";
-                }
-            }
-            redirect("index.php?page=admin_recettes");
-        }
-
-        // Search and display recipes
-        $search = trim($_GET['q'] ?? '');
-        $recipes = $this->userModel->getRecipes($search !== '' ? $search : null);
-        require_once 'views/front/recettes.php';
-    }
-
-    // ========================================
     // NUTRITION PLANS
     // ========================================
 
@@ -401,33 +553,34 @@ class AdminController
      * Admin can create, view, and manage plans
      */
     public function deleteUsersBulk()
-{
-    header('Content-Type: application/json');
+    {
+        header('Content-Type: application/json');
 
-    $data = json_decode(file_get_contents("php://input"), true);
+        $data = json_decode(file_get_contents("php://input"), true);
 
-    if (!isset($data['ids']) || empty($data['ids'])) {
-        echo json_encode(['success' => false, 'message' => 'No IDs']);
-        return;
+        if (!isset($data['ids']) || empty($data['ids'])) {
+            echo json_encode(['success' => false, 'message' => 'No IDs']);
+            return;
+        }
+
+        $ids = array_map('intval', $data['ids']);
+
+        // 🚫 SECURITY: never allow owner deletion
+        $ids = array_filter($ids, function($id) {
+            return $id !== 1; // change if needed
+        });
+
+        try {
+            $this->userModel->deleteMultiple($ids);
+            echo json_encode(['success' => true]);
+        } catch (Exception $e) {
+            echo json_encode([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
-
-    $ids = array_map('intval', $data['ids']);
-
-    // 🚫 SECURITY: never allow owner deletion
-    $ids = array_filter($ids, function($id) {
-        return $id !== 1; // change if needed
-    });
-
-    try {
-        $this->userModel->deleteMultiple($ids);
-        echo json_encode(['success' => true]);
-    } catch (Exception $e) {
-        echo json_encode([
-            'success' => false,
-            'message' => $e->getMessage()
-        ]);
-    }
-}
+    
     public function adminPlans()
     {
         require_role([ROLE_ADMIN, ROLE_OWNER]);

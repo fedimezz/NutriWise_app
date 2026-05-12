@@ -1,5 +1,5 @@
 <?php
-// views/front/aliment_details.php
+// views/aliment/details.php
 
 // Fonctions pour les images
 function getAlimentImageUrl($image, $alimentName = '') {
@@ -196,7 +196,7 @@ function getRelatedImageUrl($image, $alimentName = '') {
 <body>
     <?php include 'views/back/chatbot.php'; ?>
     <div class="container">
-        <?php include_once 'partials/navbar.php'; ?>
+        <?php include_once __DIR__ . '/../front/partials/navbar.php'; ?>
 
         <div class="detail-container">
             <a href="javascript:history.back()" class="back-link">
@@ -303,7 +303,7 @@ function getRelatedImageUrl($image, $alimentName = '') {
                                     <?php foreach($relatedAliments as $related): 
                                         $relImg = getRelatedImageUrl($related['image'] ?? null, $related['nom'] ?? '');
                                     ?>
-                                        <div class="related-card" onclick="window.location='index.php?page=aliment_details&id=<?= (int)$related['id'] ?>';">
+                                        <div class="related-card" onclick="window.location='<?= htmlspecialchars($_SERVER['SCRIPT_NAME']) ?>?page=aliment_details&id=<?= (int)$related['id'] ?>';">
                                             <img class="related-thumb" src="<?= $relImg ?>" alt="<?= htmlspecialchars($related['nom']) ?>" loading="lazy" onerror="this.src='https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=280&fit=crop'">
                                             <div class="related-content">
                                                 <h4><?= htmlspecialchars($related['nom']) ?></h4>

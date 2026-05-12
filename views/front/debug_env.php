@@ -20,7 +20,7 @@ $googleSecret = (string)env_value('GOOGLE_CLIENT_SECRET', '');
 <body>
 <div class="container" style="max-width:900px; margin:2rem auto;">
     <h1>Debug env (Owner)</h1>
-    <p>Cette page masque les valeurs. Elle sert فقط لتأكيد أن PHP lit bien `.env` / variables Apache.</p>
+    <p>Cette page masque les valeurs. Elle sert  PHP lit bien `.env` / variables Apache.</p>
 
     <div style="background:#fff; border:1px solid #e9ecef; border-radius:16px; padding:16px;">
         <div><strong>GOOGLE_CLIENT_ID</strong>: <?= htmlspecialchars(mask_value($googleId), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
